@@ -10,7 +10,7 @@ from scipy import optimize
 
 
 MAX_ITERS = 10000 # max number of iterations for Monte Carlo simulation
-optimization_choice = 2
+optimization_choice = 1
 # Choose the optimization method - you can run both on this script
 #1 = monte carlo, 2 = sim annealing
 sensor_comm_ratio = 1.5 # ratio of sensor communication to sensing radius (because communication radius is typically larger)
@@ -69,7 +69,7 @@ def objective_fcn(x, *args):
     # Finally, perform the objective fcn computations
     if valid_placement_check and valid_WSN:
         # must return the NEGATIVE because we're minimizing
-        return -terrain.get_configaration_observability(_map)
+        return -terrain.get_configuration_observability(_map)
     
     # An invalid config will just return an arbitrarily large number
     else:
@@ -77,10 +77,11 @@ def objective_fcn(x, *args):
 
 
 # Define terrain 
-terrain_width = 100
-terrain_height = 100
+terrain_width = 1002
+# terrain_height = 796
+terrain_height = 796
 terrain = Configuration(terrain_width, terrain_height)
-my_path = Path(__file__).parent / "../data/terrain/terrain2.csv"
+my_path = Path(__file__).parent / "../data/terrain/GIS_terrain.csv"
 terrain.load_from_csv(my_path)
 
 # Initialize optimal sensor configuration cost and map
@@ -144,7 +145,7 @@ try:
             already_placed.append((i, j))
 
             # Calculate cost and check if configuration is valid
-            score = terrain.get_configaration_observability(_map)
+            score = terrain.get_configuration_observability(_map)
             valid = terrain.is_configuration_valid(_map)
 
             # Record each valid configuration that has a cost greater than the previous max
@@ -158,7 +159,7 @@ try:
 
     # Create a final plot
     _map = make_basic_seismic_map(num_sensors, sensor_rad, sensor_type, x_final)
-    score = terrain.get_configaration_observability(_map)
+    score = terrain.get_configuration_observability(_map)
     best_score = score
     best_config = _map
     print(best_score)

@@ -14,6 +14,13 @@ K = 10000
 # Land_type: type of terrain
 # is_sensor_valid: describes if a sensor can be placed on that terrain
 
+# Classes:
+# 1: water
+# 2: road
+#3: low vegetation
+# 4: High vegetation
+# 5: Man-made objects
+
 # Water class
 class Water:
     def __init__(self):
@@ -35,6 +42,13 @@ class Road:
     def __init__(self):
         self.color = (0, 0, 0)
         self.land_type = 'road'
+        self.is_sensor_valid = False
+
+# Manmade class
+class Manmade:
+    def __init__(self):
+        self.color = (168, 76, 50)
+        self.land_type = 'manmade'
         self.is_sensor_valid = False
 
 # Node class
@@ -65,7 +79,9 @@ class Configuration:
             row = []
             for j in range(width):
                 row.append(Node(i, j, Land()))
+                # print(i,j)
             self.grid.append(row)
+        # print(i,j)
 
     # Return terrain type of each grid point (as a word rather than numeric value)
     def print_grid(self):
@@ -87,16 +103,19 @@ class Configuration:
         for i in range(len(lines)):
             for j in range(len(lines[i])):
                 item = lines[i][j].strip()
-                if item == '2':
+                if item == '1':
                     self.grid[i][j].land_type = Water()
-                elif item == '0':
+                elif item == '2':
                     self.grid[i][j].land_type = Road()
+                elif item == '5':
+                    self.grid[i][j].land_type = Manmade()
                 else:
+                    # print("here")
                     self.grid[i][j].land_type = Land()
                     veg_level = float(item.strip())
-                    if veg_level == 1:
+                    if veg_level == 3:
                         veg_level = 0
-                    elif veg_level == 3:
+                    elif veg_level == 4:
                         veg_level = 1
                     self.grid[i][j].veg_level = veg_level
 
@@ -234,6 +253,8 @@ class Configuration:
             scale_factor = 1 / (n.veg_level + 1) # accounts for low vs high vegetation
         elif n.land_type.land_type == "road":
             scale_factor = 1
+        elif n.land_type.land_type == "manmade":
+            scale_factor = 0.5
         G = np.exp(-0.5*(d/sigma)**2)
         # return something like a_0 * scale * gaussian scaling (exists in [0, 1])
         return a_0 * scale_factor * G
@@ -266,9 +287,11 @@ class Configuration:
             return 1
         elif n.land_type.land_type == "road":
             return 2
+        elif n.land_type.land_type == "manmade":
+            return 1
     
     # Calculate cost (configuration profit in PPT) of configuration. We want to maximize the cost, i.e. maximize information known about the environment
-    def get_configaration_observability(self, s_map=None):
+    def get_configuration_observability(self, s_map=None):
         if s_map == None:
             s_map = self.get_sensor_map()
         
@@ -357,4 +380,4 @@ class Configuration:
             return True
 
 if __name__ == '__main__':
-    landscape = Configuration(100, 100)
+    landscape = Configuration(1002, 796)
