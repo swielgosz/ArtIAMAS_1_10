@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
-
 import numpy as np
 import pprint as pp
 
+
+# JM - added decay to get_node_seismic_score() 
+    # and get_node_acoustic_score() to Configuration class
 
 SENSOR_RADIUS = 2 # max sensor radius
 K = 10000
@@ -218,7 +220,10 @@ class Configuration:
 
 
     # Assign acoustic sensor component of "coverage score" (defined in project PPT)
-    def get_node_acoustic_score(self, i, j):
+    # JM - add "gaussian" ability here
+        # pass in coords, distance from sensor, and std dev
+        # Upping sigma would increase the "decay" of the sensing ability    
+    def get_node_acoustic_score(self, i, j, d, sigma):
         
         n = self.grid[i][j]
         a_0 = 1
@@ -229,11 +234,12 @@ class Configuration:
             scale_factor = 1 / (n.veg_level + 1) # accounts for low vs high vegetation
         elif n.land_type.land_type == "road":
             scale_factor = 1
-
-        return a_0 * scale_factor
+        G = np.exp(-0.5*(d/sigma)**2)
+        # return something like a_0 * scale * gaussian scaling (exists in [0, 1])
+        return a_0 * scale_factor * G
 
     # Assign seismic sensor component of "coverage score" (defined in project PP
-    def get_node_seismic_score(self, i, j):
+    def get_node_seismic_score(self, i, j, d, sigma):
         
         n = self.grid[i][j]
         a_0 = 1
@@ -245,7 +251,9 @@ class Configuration:
         elif n.land_type.land_type == "road":
             scale_factor = 1
 
-        return a_0 * scale_factor
+        G = np.exp(-0.5*(d/sigma)**2)
+        # return something like a_0 * scale * gaussian scaling (exists in [0, 1])
+        return a_0 * scale_factor * G
     
     # Weighting factor of each terrain type (alpha in PPT)
     def get_desirability_score(self, i, j):
@@ -275,14 +283,15 @@ class Configuration:
 
                 # Check which sensors each grid point is detected by, and assign "coverage score" accordingly
                 for sensor in s_map:
-
-                    if np.sqrt((i - sensor["i"])**2 + (j - sensor["j"])**2) <= sensor["sensor_radius"]:
+                    # JM - will reuse the distance calculation for gaussian decay
+                    dist = np.sqrt((i - sensor["i"])**2 + (j - sensor["j"])**2)
+                    if  dist <= sensor["sensor_radius"]:
 
                         if sensor["sensor_type"] == "acoustic" and n_acoustic == 0:
-                            n_acoustic = self.get_node_acoustic_score(i, j)
+                            n_acoustic = self.get_node_acoustic_score(i, j, dist, sigma=sensor['sensor_radius'])
 
                         elif sensor["sensor_type"] == "seismic" and n_seismic == 0:
-                            n_seismic = self.get_node_seismic_score(i, j)
+                            n_seismic = self.get_node_seismic_score(i, j, dist, sigma=sensor['sensor_radius'])
 
                 # Calculate "profit" at each grid point by weighting "coverage score" by terrain weighting factor, and sum to find total "configuration profit"
                 conf_score += (n_acoustic + n_seismic) * self.get_desirability_score(i, j)
