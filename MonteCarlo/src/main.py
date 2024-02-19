@@ -1,4 +1,4 @@
-from MonteCarlo.src.landscape import Configuration, Node
+from landscape import Configuration, Node
 from sensors import Sensor
 import numpy as np
 import pprint as pp
@@ -10,7 +10,7 @@ from scipy import optimize
 
 
 MAX_ITERS = 10000 # max number of iterations for Monte Carlo simulation
-optimization_choice = 2 
+optimization_choice = 2
 # Choose the optimization method - you can run both on this script
 #1 = monte carlo, 2 = sim annealing
 sensor_comm_ratio = 1.5 # ratio of sensor communication to sensing radius (because communication radius is typically larger)
