@@ -1,4 +1,4 @@
-from MonteCarlo.src.landscape import Configuration, Node
+from landscape import Configuration, Node
 from sensors import Sensor
 import numpy as np
 import pprint as pp
@@ -66,7 +66,7 @@ def make_basic_seismic_map(num_sensors, sensor_radius, max_width, max_height, te
 terrain_width = 100
 terrain_height = 100
 terrain = Configuration(terrain_width, terrain_height)
-my_path = Path(__file__).parent / "../data/terrain/terrain2.csv"
+my_path = Path(__file__).parent / "../data/terrain/GIS_terrain_resize.csv"
 terrain.load_from_csv(my_path)
 
 # Initialize optimal sensor configuration cost and map
@@ -81,7 +81,7 @@ x = [0,0]
     # Define number of sensors and radii
 num_sensors = 1
 if CASE == 1 or CASE == 2:
-    sensor_radius = 20
+    sensor_radius = 10
 
 
 for i in range(terrain_height):
@@ -94,14 +94,19 @@ for i in range(terrain_height):
             score[i][j] = score_iter
         else:
             _map = make_basic_seismic_map(num_sensors, sensor_radius, terrain_width, terrain_height, terrain, x)
-            score_iter = terrain.get_configaration_observability(_map)
+            score_iter = terrain.get_configuration_observability(_map)
             # Calculate cost and check if configuration is valid
             #print(score_iter)
+            if j == 1:
+                print(i,j)
+            print(i,j)
             score[i][j] = score_iter
 
 
 
+# plt.imshow(score, cmap='viridis', annot=True,interpolation='nearest')
 plt.imshow(score, cmap='viridis', interpolation='nearest')
+plt.colorbar()
 plt.show()
 
 

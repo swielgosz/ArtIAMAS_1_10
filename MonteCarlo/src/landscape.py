@@ -24,7 +24,8 @@ K = 10000
 # Water class
 class Water:
     def __init__(self):
-        self.color = (10, 62, 235)
+        # self.color = (10, 62, 235)
+        self.color = (0, 0, 232)
         self.land_type = 'water'
         self.is_sensor_valid = False 
 
@@ -33,21 +34,25 @@ class Land:
     def __init__(self):
         # self.color = (250, 245, 145)
         # self.color = (205, 235, 120)
-        self.color = (235, 250, 195)
+        # self.color = (235, 250, 195)
+        self.color =(186, 239, 152)
         self.land_type = 'land'
         self.is_sensor_valid = True
 
 # Road class
 class Road:
     def __init__(self):
-        self.color = (0, 0, 0)
+        # self.color = (0, 0, 0)
+        self.color = (128, 64, 128)
         self.land_type = 'road'
         self.is_sensor_valid = False
 
 # Manmade class
 class Manmade:
     def __init__(self):
-        self.color = (168, 76, 50)
+        # self.color = (168, 76, 50)
+        # self.color = (239, 37, 7)
+        self.color = (168, 19, 10)
         self.land_type = 'manmade'
         self.is_sensor_valid = False
 
@@ -153,7 +158,8 @@ class Configuration:
                     if self.grid[i][j].veg_level < 0.5:
                         data[i][j] = self.grid[i][j].land_type.color
                     else:
-                        data[i][j] = (30, 95, 5)
+                        # data[i][j] = (30, 95, 5)
+                        data[i][j] = (5, 129, 35)
                 elif self.grid[i][j].land_type != None:
                     data[i][j] = self.grid[i][j].land_type.color
                 else:
@@ -168,10 +174,15 @@ class Configuration:
         if s_map != None:
             for item in s_map:
                 if item["sensor_type"] == "seismic":
-                        sensor_color = '#8a54df' # purple
+                        # sensor_color = '#8a54df' # purple
+                        sensor_color = '#000000' # black
+
                 elif item["sensor_type"] == "acoustic":
                     # sensor_color = '#6e5502' #'#e88e10' # orange
                     sensor_color = '#e88e10' # orange
+                    # sensor_color = '#B3ADAD' #gray
+                    # sensor_color = '#FBBD1F' # more orange
+
 
                 # Plotting sensors location
                 circle = plt.Circle((item["j"], item["i"]), item["sensor_radius"], color = sensor_color, linewidth = 2, fill=False)
@@ -252,14 +263,16 @@ class Configuration:
         elif n.land_type.land_type == "land":
             scale_factor = 1 / (n.veg_level + 1) # accounts for low vs high vegetation
         elif n.land_type.land_type == "road":
-            scale_factor = 1
+            scale_factor = 5
         elif n.land_type.land_type == "manmade":
-            scale_factor = 0.5
+            scale_factor = 1
+        else:
+            scale_factor = 0
         G = np.exp(-0.5*(d/sigma)**2)
         # return something like a_0 * scale * gaussian scaling (exists in [0, 1])
         return a_0 * scale_factor * G
 
-    # Assign seismic sensor component of "coverage score" (defined in project PP
+    # Assign seismic sensor component of "coverage score" (defined in project PPT)
     def get_node_seismic_score(self, i, j, d, sigma):
         
         n = self.grid[i][j]
@@ -270,7 +283,11 @@ class Configuration:
         elif n.land_type.land_type == "land":
             scale_factor = 1
         elif n.land_type.land_type == "road":
-            scale_factor = 1
+            scale_factor = 5
+        elif n.land_type.land_type == "manmade":
+            scale_factor = 0.75
+        else:
+            scale_factor = 0
 
         G = np.exp(-0.5*(d/sigma)**2)
         # return something like a_0 * scale * gaussian scaling (exists in [0, 1])
@@ -286,7 +303,7 @@ class Configuration:
         elif n.land_type.land_type == "land":
             return 1
         elif n.land_type.land_type == "road":
-            return 2
+            return 5
         elif n.land_type.land_type == "manmade":
             return 1
     
@@ -380,4 +397,5 @@ class Configuration:
             return True
 
 if __name__ == '__main__':
-    landscape = Configuration(1002, 796)
+    landscape = Configuration(100, 100)
+    # landscape = Configuration(1002, 796)

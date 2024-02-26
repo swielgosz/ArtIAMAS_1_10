@@ -7,10 +7,31 @@ import shutil
 from pathlib import Path
 from scipy.optimize import minimize
 from scipy import optimize
+import time
+# #[ ...Snip... ]
+# import smtplib
+# #[ ...Snip... ]
+# for USER in open(opts.USERS,'r'):
+#     smtpserver = smtplib.SMTP(HOST,PORT)
+#     smtpserver.ehlo()
+#     verifyuser = smtpserver.verify(USER)
+#     print("%s %s:  %s") % (HOST.rstrip(), USER.rstrip(), verifyuser)
+#     smtpserver.quit()
 
-
-MAX_ITERS = 10000 # max number of iterations for Monte Carlo simulation
-optimization_choice = 1
+# def online_check():
+#   while True:
+#     try:
+#       con = urllib2.urlopen("http://www.google.com/")
+#       data = con.read()
+#       logging.debug('{0} Reached the host. Exiting online_check'.format(time.strftime('[ %H:%M:%S ]')))
+#       break
+#     except:
+#       logging.debug('{0} Could not reach host trying again in 3 seconds'.format(time.strftime('[ %H:%M:%S ]')))
+#       time.sleep(3)
+      
+counter = 0
+MAX_ITERS = 100000 # max number of iterations for Monte Carlo simulation
+optimization_choice = 2
 # Choose the optimization method - you can run both on this script
 #1 = monte carlo, 2 = sim annealing
 sensor_comm_ratio = 1.5 # ratio of sensor communication to sensing radius (because communication radius is typically larger)
@@ -51,7 +72,10 @@ def make_basic_seismic_map(num_sensors, sensor_rad, sensor_type, x):
 def objective_fcn(x, *args):
     sensor_rad, sensor_type, num_sensors = args
     valid_placement_check = True
-
+    # global counter
+    # counter += 1
+    # print(counter)
+    
     # First check that a sensor is in a valid location
     for k in range(num_sensors):
         i = int(x[0+2*k])
@@ -69,7 +93,11 @@ def objective_fcn(x, *args):
     # Finally, perform the objective fcn computations
     if valid_placement_check and valid_WSN:
         # must return the NEGATIVE because we're minimizing
+        global counter
+        counter += 1
+        print(counter)
         return -terrain.get_configuration_observability(_map)
+        
     
     # An invalid config will just return an arbitrarily large number
     else:
@@ -77,11 +105,12 @@ def objective_fcn(x, *args):
 
 
 # Define terrain 
-terrain_width = 1002
+# terrain_width = 1002
 # terrain_height = 796
-terrain_height = 796
+terrain_height = 100
+terrain_width = 100
 terrain = Configuration(terrain_width, terrain_height)
-my_path = Path(__file__).parent / "../data/terrain/GIS_terrain.csv"
+my_path = Path(__file__).parent / "../data/terrain/GIS_terrain_resize.csv"
 terrain.load_from_csv(my_path)
 
 # Initialize optimal sensor configuration cost and map
@@ -93,7 +122,8 @@ config_history = []
 # the design vector, x, will be a 2K length vector of (x, y) pairs for a sensor k
 # the values are paired in order 
 num_sensors = 4
-sensor_rad = [20, 20, 20, 20]
+sensor_rad = [10,10,10,10]
+# sensor_rad = [5,5,5,5]
 sensor_type = ["seismic", "acoustic", "seismic", "acoustic"]
 
 try:  
@@ -113,8 +143,9 @@ try:
         bounds = [(0, 99)]*2*num_sensors #bounds placing points to only on the map
         # Some documentation!!
         # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.dual_annealing.html
-        res = optimize.dual_annealing(objective_fcn, bounds=bounds, args = sensor_lists)
-        
+        # res = optimize.dual_annealing(objective_fcn, bounds=bounds, args = sensor_lists)
+        res = optimize.dual_annealing(objective_fcn, bounds=bounds, args = sensor_lists, no_local_search=True)
+        # res = optimize.dual_annealing(objective_fcn, bounds=bounds, args = sensor_lists, restart_temp_ratio=0.01, visit = 1.25, no_local_search=True)
         # Convex minimization scipy fcn - may not actually work, I havent tried it in a while
         # res = minimize(objective_fcn, x0, args = sensor_lists)
 
@@ -127,7 +158,9 @@ try:
     if optimization_choice == 1:
         # Run thru max iterations
         for i in range(MAX_ITERS):
-            print("Iteration: ", i, end="\r")
+            time.sleep(0.01)
+            if i%100 == 0:
+                print("Iteration: ", i, end="\r")
             x = []
             for k in range(num_sensors):
                 j = np.random.randint(0, terrain_width)
