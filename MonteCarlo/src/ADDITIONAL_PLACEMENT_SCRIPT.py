@@ -26,6 +26,9 @@ from helper_calculations.sensor_vision import get_LOS_coeff
 # uncertainty ellipses
 # --------------------------------------
 
+# Add in a penalty function!!
+# JM edits to show branch functionality
+
 # --------------PARAMETERS------------------
 # TERRAIN INPUTS
 terrain_height = 100 #796
