@@ -66,7 +66,8 @@ class Node:
         self.land_type = land_type
         self.veg_level = veg_level
 
-        self.sensor_type = None
+        self.sensor_type = None # acoustic or seismic
+        self.sensor_mode = None # radius or bearing
         self.sensor_radius = 0
 
 
@@ -133,7 +134,8 @@ class Configuration:
         return False
     
     # Populate grid point with sensor
-    def deploy_sensor(self, i, j, sensor_type, sensor_radius):
+    def deploy_sensor(self, i, j, sensor_type, sensor_mode, sensor_radius):
+        self.grid[i][j].sensor_mode = sensor_mode # "bearing" or "radius"
         self.grid[i][j].sensor_type = sensor_type # "acoustic" or "seismic"
         self.grid[i][j].sensor_radius = sensor_radius
 
@@ -142,6 +144,7 @@ class Configuration:
         for i in range(self.height):
             for j in range(self.width):
                 self.grid[i][j].sensor_type = None
+                self.grid[i][j].sensor_mode = None
 
     # PLotting the terrain with sensors
     def plot_grid(self, s_map=None):
@@ -184,22 +187,21 @@ class Configuration:
                     # sensor_color = '#FBBD1F' # more orange
 
 
-                # Plotting sensors location
-                circle = plt.Circle((item["j"], item["i"]), item["sensor_radius"], color = sensor_color, linewidth = 2, fill=False)
+                # Plotting sensors sensing radius
+                circle = plt.Circle((item["i"], item["j"]), item["sensor_radius"], color = sensor_color, linewidth = 2, fill=False)
                 ax.add_patch(circle)
 
-                # Plotting sensor sensing radius
-                circle2 = plt.Circle((item["j"], item["i"]), .5, color = sensor_color,  fill=True)
+                # Plotting sensors location
+                circle2 = plt.Circle((item["i"], item["j"]), 0.5, color = sensor_color,  fill=True)
                 ax.add_patch(circle2)
 
                 # Plotting sensor communication radius
-                circle3 = plt.Circle((item["j"], item["i"]), item["sensor_comm_radius"], color = sensor_color,linestyle='--', linewidth = 0.5,fill=False)
-                ax.add_patch(circle3)
-
-                
-
-        plt.show()
+                #circle3 = plt.Circle((item["i"], item["j"]), item["sensor_comm_radius"], color = sensor_color,linestyle='--', linewidth = 0.5,fill=False)
+                #ax.add_patch(circle3)
         
+        return ax
+
+        # plt.show()    
 
     # Save plots. This is basically the same as plot_grid. Not efficient
     def save_history(self, history,dirpath):
@@ -239,8 +241,8 @@ class Configuration:
                     circle2 = plt.Circle((item["j"], item["i"]), .5, color = sensor_color, fill=True)
                     ax.add_patch(circle2)
 
-                    circle3 = plt.Circle((item["j"], item["i"]), item["sensor_comm_radius"], color = sensor_color, linestyle='--', linewidth = 0.5, fill=False)
-                    ax.add_patch(circle3)
+                    #circle3 = plt.Circle((item["j"], item["i"]), item["sensor_comm_radius"], color = sensor_color, linestyle='--', linewidth = 0.5, fill=False)
+                    #ax.add_patch(circle3)
 
                 
             plt.title(f"Best Configuration {c+1}")
@@ -268,9 +270,10 @@ class Configuration:
             scale_factor = 1
         else:
             scale_factor = 0
-        G = np.exp(-0.5*(d/sigma)**2)
+        # G = np.exp(-0.5*(d/sigma)**2)
         # return something like a_0 * scale * gaussian scaling (exists in [0, 1])
-        return a_0 * scale_factor * G
+        # return a_0 * scale_factor * G
+        return a_0 * scale_factor
 
     # Assign seismic sensor component of "coverage score" (defined in project PPT)
     def get_node_seismic_score(self, i, j, d, sigma):
@@ -289,9 +292,10 @@ class Configuration:
         else:
             scale_factor = 0
 
-        G = np.exp(-0.5*(d/sigma)**2)
+        # G = np.exp(-0.5*(d/sigma)**2)
         # return something like a_0 * scale * gaussian scaling (exists in [0, 1])
-        return a_0 * scale_factor * G
+        # return a_0 * scale_factor * G
+        return a_0 * scale_factor
     
     # Weighting factor of each terrain type (alpha in PPT)
     def get_desirability_score(self, i, j):
@@ -299,14 +303,63 @@ class Configuration:
         n = self.grid[i][j]
 
         if n.land_type.land_type == "water":
-            return .2
+            return .1
         elif n.land_type.land_type == "land":
-            return 1
+            return 0.5
         elif n.land_type.land_type == "road":
-            return 5
+            return 3
         elif n.land_type.land_type == "manmade":
-            return 1
+            return 1.5
+        
+    def LOS_loss_coeff(self, i, j):
+        
+        n = self.grid[i][j]
+
+        if n.land_type.land_type == "water":
+            return 2.5
+        elif n.land_type.land_type == "land":
+            if n.veg_level < 0.5:
+                return 1
+            elif n.veg_level > 0.5:
+                return 1.5
+        elif n.land_type.land_type == "road":
+            return 2
+        elif n.land_type.land_type == "manmade":
+            return 2.5
+        
+    # Commented this out because we want to remove the sensor weighting factor
+    # # Calculate cost (configuration profit in PPT) of configuration. We want to maximize the cost, i.e. maximize information known about the environment
+    # def get_configuration_observability(self, s_map=None):
+    #     if s_map == None:
+    #         s_map = self.get_sensor_map()
+        
+    #     conf_score = 0
+
+    #     # Loop through each grid point
+    #     for i in range(self.height):
+    #         for j in range(self.width):
+                
+    #             n_acoustic = 0
+    #             n_seismic = 0
+
+    #             # Check which sensors each grid point is detected by, and assign "coverage score" accordingly
+    #             for sensor in s_map:
+    #                 # JM - will reuse the distance calculation for gaussian decay
+    #                 dist = np.sqrt((i - sensor["i"])**2 + (j - sensor["j"])**2)
+    #                 if  dist <= sensor["sensor_radius"]:
+
+    #                     if sensor["sensor_type"] == "acoustic" and n_acoustic == 0:
+    #                         n_acoustic = self.get_node_acoustic_score(i, j, dist, sigma=sensor['sensor_radius'])
+
+    #                     elif sensor["sensor_type"] == "seismic" and n_seismic == 0:
+    #                         n_seismic = self.get_node_seismic_score(i, j, dist, sigma=sensor['sensor_radius'])
+
+    #             # Calculate "profit" at each grid point by weighting "coverage score" by terrain weighting factor, and sum to find total "configuration profit"
+    #             conf_score += (n_acoustic + n_seismic) * self.get_desirability_score(i, j) # in line below, remove n_acoustic and n_seismic so we only check if a location is covered and scale it by terrain desirability
+
+    #     return conf_score
     
+    # ADD IN LOS CALCS
     # Calculate cost (configuration profit in PPT) of configuration. We want to maximize the cost, i.e. maximize information known about the environment
     def get_configuration_observability(self, s_map=None):
         if s_map == None:
@@ -317,9 +370,6 @@ class Configuration:
         # Loop through each grid point
         for i in range(self.height):
             for j in range(self.width):
-                
-                n_acoustic = 0
-                n_seismic = 0
 
                 # Check which sensors each grid point is detected by, and assign "coverage score" accordingly
                 for sensor in s_map:
@@ -327,17 +377,78 @@ class Configuration:
                     dist = np.sqrt((i - sensor["i"])**2 + (j - sensor["j"])**2)
                     if  dist <= sensor["sensor_radius"]:
 
-                        if sensor["sensor_type"] == "acoustic" and n_acoustic == 0:
-                            n_acoustic = self.get_node_acoustic_score(i, j, dist, sigma=sensor['sensor_radius'])
-
-                        elif sensor["sensor_type"] == "seismic" and n_seismic == 0:
-                            n_seismic = self.get_node_seismic_score(i, j, dist, sigma=sensor['sensor_radius'])
-
-                # Calculate "profit" at each grid point by weighting "coverage score" by terrain weighting factor, and sum to find total "configuration profit"
-                conf_score += (n_acoustic + n_seismic) * self.get_desirability_score(i, j)
+                        # If a sensor sees a node, break and move on to next node
+                        conf_score += self.get_desirability_score(i, j)
+                        break
 
         return conf_score
     
+    # ADD IN CALCULATION FOR LOCALIZATION SCORE
+    def get_localization_score(self, s_map=None):
+        if s_map == None:
+            s_map = self.get_sensor_map()
+        
+        localization_score = 0
+        
+        # Loop through each grid point
+        for i in range(self.height):
+            for j in range(self.width):
+
+                localized_flag = 0
+                radius_sensor_count = 0
+                bearing_sensor_count = 0
+
+                bearing_sublist = []
+                radius_sublist = []
+
+                # If grid point is sensed by 3 radius sensors, 
+                    # 2 bearing sensors, or 
+                    # 1 radius and 1 bearing 
+                    # we may be able to localize it!
+                for sensor in s_map:
+
+                    dist = np.sqrt((i - sensor["i"])**2 + (j - sensor["j"])**2)
+                    if  dist <= sensor["sensor_radius"]:
+                        if sensor["sensor_mode"] == "bearing":
+                            bearing_sensor_count += 1
+                            bearing_sublist.append([sensor["i"],sensor["j"]])
+
+                        elif sensor["sensor_mode"] == "radius":
+                            radius_sensor_count += 1
+                            radius_sublist.append([sensor["i"],sensor["j"]])
+
+
+                        # Count if the num of required sensors are there
+                        CND1, CND2 = bearing_sensor_count >= 2, radius_sensor_count >= 3, 
+                        CND3 = (bearing_sensor_count >= 1 & radius_sensor_count >= 1)
+
+                        if CND1: # if the bearing sublist is > 2
+                            # Create a list of duplicated. 
+                            dups = {tuple(x) for x in bearing_sublist if bearing_sublist.count(x)>1}
+                            # If empty, return TRUE
+                            sub_CND1 = (dups == set())
+                        
+                        if CND2:# if the radius sublist is > 3
+                            # Create a list of duplicated. 
+                            dups = {tuple(x) for x in radius_sublist if radius_sublist.count(x)>1}
+                            sub_CND2 = (dups == set())
+
+                        # Now check that the required num of sensors meet the config reqs
+                        CND1_tot = CND1 and sub_CND1
+                        CND2_tot = CND2 and sub_CND2
+
+                        # If true, this pt is satsified and break
+                        if (CND1_tot|CND2_tot|CND3) == True:
+                            localized_flag = 1
+                            break
+                
+                # Compute the localization score using the {0,1} binary
+                localization_score += localized_flag*self.get_desirability_score(i, j)
+                        
+        return localization_score
+    
+    # ADD IN CALCULATION FOR TOTAL MAP SCORE
+
     # Return informaton about sensors in map
     def get_sensor_map(self):
 
@@ -351,6 +462,7 @@ class Configuration:
                         "i": i,
                         "j": j,
                         "sensor_type": self.grid[i][j].sensor_type,
+                        "sensor_mode": self.grid[i][j].sensor_mode,
                         "sensor_radius": self.grid[i][j].sensor_radius,
                         "sensor_id": sensor_count
                     })
@@ -360,7 +472,11 @@ class Configuration:
         return sensor_map
 
     # Check if the sensors in a configuration are connected via a WSN
+    # UPDATE THIS for 2 way communication
     def is_configuration_valid(self, s_map=None):
+        #Inits
+        WSN = False
+        
         if s_map == None:
             s_map = self.get_sensor_map()
 
@@ -373,7 +489,7 @@ class Configuration:
                 if i == j:
                     continue
                 else:
-                    if np.sqrt((s_map[i]["i"] - s_map[j]["i"])**2 + (s_map[i]["j"] - s_map[j]["j"])**2) <= s_map[j]["sensor_comm_radius"]:
+                    if (np.sqrt((s_map[i]["i"] - s_map[j]["i"])**2 + (s_map[i]["j"] - s_map[j]["j"])**2) <= s_map[j]["sensor_comm_radius"]) & (np.sqrt((s_map[i]["i"] - s_map[j]["i"])**2 + (s_map[i]["j"] - s_map[j]["j"])**2) <= s_map[i]["sensor_comm_radius"]):
                         curr_node_connections.append(str(j))
             graph[str(i)] = curr_node_connections
                 
@@ -394,7 +510,9 @@ class Configuration:
         
         # If list of visited neighbors is equal in length to number of sensors, sensors are connected
         if len(visited) == len(s_map):
-            return True
+            WSN = True
+
+        return WSN
 
 if __name__ == '__main__':
     landscape = Configuration(100, 100)
