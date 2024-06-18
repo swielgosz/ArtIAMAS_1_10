@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 # optimum between localization and coverage using a tunable weighted value
 # --------------------------------------
 
+# JM Branch change!!!
+
 # --------------PARAMETERS------------------
 # SCRIPT CONTROL
 MAX_ITERS = 100000 # max number of iterations for Monte Carlo simulation
