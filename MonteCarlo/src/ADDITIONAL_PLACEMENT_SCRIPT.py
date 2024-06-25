@@ -42,7 +42,7 @@ terrain.load_from_csv(my_path)
 sensor_rad = [25, 25, 25]
 sensor_type = ["seismic","acoustic","seismic"]
 num_sensors = len(sensor_type)
-sensor_comm_ratio = 2 # ratio of sensor communication to sensing radius 
+sensor_comm_ratio = 1.5 # ratio of sensor communication to sensing radius 
 meas_type = ["radius", "bearing", "radius"] #radius or bearing
 LOS_flag = 1 # 1 if want to consider LOS, 0 if don't want to
 
@@ -76,7 +76,7 @@ maxfun_2 = 100000#Max fun w/ LOS
 max_iters = 5000
 printer_counts = 5000 #print the results every ___ fcn calls
 # Use list to run a parameter sweep
-vol_tol = [1e-24]
+vol_tol = [1e-30]
 # vol_tol = [1e-14] #optimization param
 # ------------------------------------------
 
@@ -134,7 +134,7 @@ def objective_fcn(x, *args):
 
     # Add the optimization variables to the lists
     for k in range(len(x)//2):
-        i, j = int(x[0+2*k]), int(x[1+2*k])
+        i, j = x[0+2*k], x[1+2*k] #let these vary and not be ints
         sensor_positions.extend([i, j])
 
     # Create a map with the existing sensors and new sensor
@@ -145,7 +145,7 @@ def objective_fcn(x, *args):
 
     # (1.1) First check for valid placement on additionally placed sensors
     for check in range(len(x)//2):
-        i, j = int(x[0+2*check]), int(x[1+2*check])
+        i, j = int(x[0+2*check]), int(x[1+2*check]) #convert to ints 
 
         # If ANY sensors are invalid, the entire config is invalid
         # Note that (i,j) are switched to respect dims of terrain class
@@ -172,15 +172,6 @@ def objective_fcn(x, *args):
                 valid_placement_check = False
 
     # (2) CALCULATE THE SCORE
-    # (2.1) First see if we've localized any new targets
-        # I take it back, we shouldn't be doing this
-        # We only localize a target if we actually place down the sensor
-        # Thus, we don't know that a priori when we're picking candidate placements
-        # in the optimizaiton routine!
-
-    #inputs = sensor_rad, meas_type, sensor_positions, targets, None
-    #(target_localized_successfully, _) = sensor_localization_routine(inputs)
-
     # (2.2) Construct the FIM's per target + calculate the det score
     #sensor_positions[-2] = x[0]
     #sensor_positions[-1] = x[1]
@@ -213,11 +204,11 @@ def objective_fcn(x, *args):
 # ------------------------------------------
 # Set a list of additional sensors to place down
 # SENSOR LIST
-sensor_rad_new = [15, 20, 15, 20]
-sensor_type_new = ["seismic", "seismic", "acoustic", "acoustic"]
+sensor_rad_new = [15, 20, 15]
+sensor_type_new = ["seismic", "seismic", "acoustic"]
 num_sensors_new = len(sensor_type_new)
-sensor_comm_ratio_new = [2] # ratio of sensor communication to sensing radius 
-meas_type_new = ["radial", "radial","bearing","bearing"]
+sensor_comm_ratio_new = sensor_comm_ratio # ratio of sensor communication to sensing radius 
+meas_type_new = ["radial", "radial","bearing"]
 
 # Now we run the optimizer w/ and w/o LOS considerations
 final_pos_LOS = []
@@ -256,9 +247,11 @@ for i in range(2):
     if i == 0:
         final_pos_no_LOS = sensor_locs.copy()
         final_pos_no_LOS.extend(x_out)
+        ax_opt.set_title('Function Evaluation across Optimization - No LOS considerations')
     if i == 1:
         final_pos_LOS = sensor_locs.copy()
         final_pos_LOS.extend(x_out)
+        ax_opt.set_title('Function Evaluation across Optimization - LOS considerations')
 
 print("w/o LOS positions:", final_pos_no_LOS)
 print("w/ LOS positions :", final_pos_LOS)
@@ -267,7 +260,6 @@ print("w/ LOS positions :", final_pos_LOS)
 # Formatting
 ax_opt.set_ylabel('Objective Function Evaluations'), ax_opt.set_xlabel('Iteration Count')
 #ax_opt.set_ylim([min(fcn_eval_list)*1.25, max(fcn_eval_list)*1.25])
-ax_opt.set_title('Function Evaluation across Optimization')
 ax_opt.grid(True, which='minor')  
 plt.show()
 
@@ -311,6 +303,6 @@ for i in range(len(sensor_locs)//2):
     plt.text(sensor_locs[0+2*i]+1, sensor_locs[1+2*i]+1, "In")
 
 for i in range(len(x_out)//2):
-    plt.text(x_out[0+2*i]+1, x_out[1+2*i]+1, "F")
+    plt.text(x_out[0+2*i]+1, x_out[1+2*i]+1, "F") #plots the LOS sensors
 
 plt.show()

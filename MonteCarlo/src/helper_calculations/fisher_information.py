@@ -88,7 +88,7 @@ def build_map_FIMS(inputs):
             
             # Check if the sensor sees the target
             for j in range(len(sensor_locs)//2):
-                x, y = int(sensor_locs[0+2*j]), int(sensor_locs[1+2*j])
+                x, y = sensor_locs[0+2*j], sensor_locs[1+2*j] #Note, leave these as floats!
                 dist = ((x-xt)**2+(y-yt)**2)**(1/2)
                 if dist < sensor_rad[j]:
                     sub_sensor_FIM.append(x)
@@ -101,7 +101,7 @@ def build_map_FIMS(inputs):
             
             # Take the sub-list of sensors that see a target
             # and calculate the FIM
-            print(sub_sensor_FIM, [xt, yt], sub_sensor_type, sub_sensor_sigma)
+            #print(sub_sensor_FIM, [xt, yt], sub_sensor_type, sub_sensor_sigma)
             FIMs.append(build_FIM(sub_sensor_FIM, [xt, yt], sub_sensor_type, sub_sensor_sigma))
             det_sum += np.linalg.det(FIMs[i])
 
