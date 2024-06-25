@@ -179,18 +179,23 @@ def objective_fcn(x, *args):
     inputs = target_localized_successfully, targets, sensor_positions, sensor_rad, meas_type, terrain, LOS_flag
     (FIMs, det_sum) = build_map_FIMS(inputs)
     det_mult = 1
+    tr_sum = 0.
+
+    # Set optimizer_var to whatever you want (trace, det, eigenvalue)
+    optimizer_var = tr_sum
     for kk in range(len(FIMs)):
-        det_mult = det_mult*np.linalg.det(FIMs[kk])
+        #optimizer_var = optimizer_var*np.linalg.det(FIMs[kk])
+        optimizer_var += np.trace(FIMs[kk])
 
     # If a valid config, return (-1)det(FIMs)
     if valid_placement_check and valid_WSN:
         # Maximize the determinant of the map
         if counter % printer_counts == 0:
-            print(counter, det_mult, sensor_positions, FIMs)
+            print(counter, optimizer_var, sensor_positions, FIMs)
 
-        fcn_eval_list.append(det_mult)
+        fcn_eval_list.append(optimizer_var)
         fcn_counter.append(counter)
-        return -det_mult # Minimize the negative det(FIMS)
+        return -optimizer_var # Minimize the negative det(FIMS)
     
     # If an invalid construction, then fail and return 0
     else:

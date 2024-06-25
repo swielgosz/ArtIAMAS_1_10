@@ -71,6 +71,7 @@ def build_map_FIMS(inputs):
     target_localized_successfully, targets, sensor_locs, sensor_rad,meas_type, terrain, LOS_flag = inputs
     FIMs = []
     det_sum = 0.
+    trace_sum = 0.
     for i in range(len(targets)//2):
         sub_sensor_FIM = []
         sub_sensor_type = []
@@ -81,6 +82,7 @@ def build_map_FIMS(inputs):
             FIM_p = np.array(([0, 0],[0,0]))
             FIMs.append(FIM_p)
             det_sum += np.linalg.det(FIMs[i])
+            trace_sum += np.trace(FIMs[i])
         
         # For localized targets
         elif target_localized_successfully[i] == 1:
@@ -104,8 +106,10 @@ def build_map_FIMS(inputs):
             #print(sub_sensor_FIM, [xt, yt], sub_sensor_type, sub_sensor_sigma)
             FIMs.append(build_FIM(sub_sensor_FIM, [xt, yt], sub_sensor_type, sub_sensor_sigma))
             det_sum += np.linalg.det(FIMs[i])
+            trace_sum += np.trace(FIMs[i])
 
-    return FIMs, det_sum
+    # 2nd term is what we're returning to the objective!
+    return FIMs, trace_sum
 
 
 def plot_uncertainty_ellipse(_map, FIM, target, confidence, plot_scale, color, solve_type):

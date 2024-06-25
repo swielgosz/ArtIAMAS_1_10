@@ -10,3 +10,4 @@
 # Equality constraint penalties are usually framed as a P = f(x)
 # Inequality constraints are usually framed as P = if{x>limit}{0, g(x)} 
     # where it's zero if a constraint is satisfied and g(x) otherwise
+    # DANIELA DE PALMA et al (2024) use a sigmoid to represent this, but we obviously dont have to
