@@ -1,6 +1,6 @@
 ### Sensor Placement Project
 
-# This branch adds the penalty function calls
+### This branch adds the penalty function calls
 
 The focus of this work is optimal sensor placement for mapping and monitoring of partially-known environments, with an emphasis on sensor-environment interactions.
 

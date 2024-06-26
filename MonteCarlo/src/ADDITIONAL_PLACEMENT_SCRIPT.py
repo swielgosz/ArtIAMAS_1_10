@@ -195,7 +195,6 @@ def objective_fcn(x, *args):
     sens_sens_penalty = min_sensor_distance_penalty(sensor_positions, d_sens_min)
     optimizer_var = optimizer_var*sens_sens_penalty #will multiply by zero if sensor distances are not met, 1 if they are
 
-
     # If a valid config, return (-1)det(FIMs)
     if valid_placement_check and valid_WSN:
         # Maximize the determinant of the map
@@ -213,7 +212,6 @@ def objective_fcn(x, *args):
         if counter % printer_counts == 0:
             print(counter, 0, sensor_positions, valid_WSN, valid_placement_check)
         return 0
-
 
 # ------------------------------------------
 # Set a list of additional sensors to place down
