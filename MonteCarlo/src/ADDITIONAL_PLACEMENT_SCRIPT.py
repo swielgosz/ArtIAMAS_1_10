@@ -15,7 +15,7 @@ from helper_calculations.sensor_vision import sensor_vision, sensor_reading, tar
 from helper_calculations.fisher_information import build_FIM, build_map_FIMS, plot_uncertainty_ellipse
 from helper_calculations.localization_calculations import sensor_localization_routine
 from helper_calculations.sensor_vision import get_LOS_coeff
-from helper_calculations.penalty_fcn import min_distance_penalty, min_sensor_distance_penalty
+from helper_calculations.penalty_fcn import min_distance_penalty, min_sensor_distance_penalty, valid_sensor_penalty
 
 # -------- DESCRIPTION -----------------
 # This script was makes an ADDITIONAL of a set of sensors by minimizing
@@ -192,14 +192,22 @@ def objective_fcn(x, *args):
         #optimizer_var += np.trace(FIMs[kk])
 
     # Now consider the minimum sensor-sensor distance penalty
+    # Need to perform this over all sensors in the WSN
     sens_sens_penalty = min_sensor_distance_penalty(sensor_positions, d_sens_min)
     optimizer_var = optimizer_var*sens_sens_penalty #will multiply by zero if sensor distances are not met, 1 if they are
+
+    # Now consider the valid placement check
+    # Only check over the optimized sensor positions, x. Doesn't make
+    # sense to check the pre-existing positions as well
+    valid_place_penalty = valid_sensor_penalty(x, terrain)
+    optimizer_var = optimizer_var*valid_place_penalty #will multiply by zero if sensor distances are not met, 1 if they are
 
     # If a valid config, return (-1)det(FIMs)
     if valid_placement_check and valid_WSN:
         # Maximize the determinant of the map
         if counter % printer_counts == 0:
             print(counter, optimizer_var, sensor_positions, FIMs)
+            print(sens_sens_penalty, valid_place_penalty)
 
         fcn_eval_list.append(optimizer_var)
         fcn_counter.append(counter)

@@ -1,5 +1,7 @@
 import numpy as np
-# This script should accept some map and return the penalty associated with a constraint violation
+from .landscape import Configuration, Node
+
+# This function code should accept some map and return the penalty associated with a constraint violation
 
 # List of constraints we need to implement (? denotes a maybe):
     # WSN enforcement (equality)
@@ -55,5 +57,59 @@ def min_sensor_distance_penalty(sensors, d_min):
     return 1
 
 # Valid placement (equality)
-def valid_sensor_penalty(sensors, map):
-    return
+def valid_sensor_penalty(sensors, terrain):
+# I'm doing a kinda kernel smoothing type thing: 
+# https://en.wikipedia.org/wiki/Kernel_(image_processing)
+
+    penalty_mult = 0.
+    for i in range(len(sensors)//2): 
+        sx, sy = round(sensors[0+2*i]), round(sensors[1+2*i])
+        # Check main square
+        if terrain.is_valid_sensor_location(sy, sx):
+            penalty_mult += 2
+        else:
+            penalty_mult += 0
+        
+        # Check all the plus/minus
+        if terrain.is_valid_sensor_location(sy+1, sx):
+            penalty_mult += 1
+        else:
+            penalty_mult += 0
+        
+        if terrain.is_valid_sensor_location(sy-1, sx):
+            penalty_mult += 1
+        else:
+            penalty_mult += 0
+
+        if terrain.is_valid_sensor_location(sy+2, sx):
+            penalty_mult += 1
+        else:
+            penalty_mult += 0
+        
+        if terrain.is_valid_sensor_location(sy-2, sx):
+            penalty_mult += 1
+        else:
+            penalty_mult += 0
+        
+        if terrain.is_valid_sensor_location(sy, sx+1):
+            penalty_mult += 1
+        else:
+            penalty_mult += 0
+        
+        if terrain.is_valid_sensor_location(sy, sx-1):
+            penalty_mult += 1
+        else:
+            penalty_mult += 0
+
+        if terrain.is_valid_sensor_location(sy, sx+2):
+            penalty_mult += 1
+        else:
+            penalty_mult += 0
+        
+        if terrain.is_valid_sensor_location(sy, sx-2):
+            penalty_mult += 1
+        else:
+            penalty_mult += 0
+
+    # Return the average
+    return (penalty_mult/(10*len(sensors)//2))
