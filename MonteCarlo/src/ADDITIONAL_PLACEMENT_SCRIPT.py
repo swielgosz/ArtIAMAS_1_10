@@ -15,6 +15,7 @@ from helper_calculations.sensor_vision import sensor_vision, sensor_reading, tar
 from helper_calculations.fisher_information import build_FIM, build_map_FIMS, plot_uncertainty_ellipse
 from helper_calculations.localization_calculations import sensor_localization_routine
 from helper_calculations.sensor_vision import get_LOS_coeff
+from helper_calculations.penalty_fcn import min_distance_penalty, min_sensor_distance_penalty
 
 # -------- DESCRIPTION -----------------
 # This script was makes an ADDITIONAL of a set of sensors by minimizing
@@ -70,11 +71,12 @@ sensor_locs.extend(sens3)
 
 # OPTIMIZATION PARAMETERS
 threshold = 6 #minimum distance a sensor must be from a target
+d_sens_min = 3 #minimum sensor-sensor distance
 vol_tol = 1e-18
 maxfun_1 = 50000 #Max fun w/o LOS
 maxfun_2 = 100000#Max fun w/ LOS
 max_iters = 5000
-printer_counts = 5000 #print the results every ___ fcn calls
+printer_counts = 1000 #print the results every ___ fcn calls
 # Use list to run a parameter sweep
 vol_tol = [1e-30]
 # vol_tol = [1e-14] #optimization param
@@ -144,32 +146,32 @@ def objective_fcn(x, *args):
     valid_placement_check, valid_WSN = True, True
 
     # (1.1) First check for valid placement on additionally placed sensors
-    for check in range(len(x)//2):
-        i, j = int(x[0+2*check]), int(x[1+2*check]) #convert to ints 
+    #for check in range(len(x)//2):
+    #    i, j = int(x[0+2*check]), int(x[1+2*check]) #convert to ints 
 
         # If ANY sensors are invalid, the entire config is invalid
         # Note that (i,j) are switched to respect dims of terrain class
         # this script is (x,y) = width, height. 
         # valid sensor check is (x, y) = height, width
-        if not terrain.is_valid_sensor_location(j, i):
-            valid_placement_check = False
+    #    if not terrain.is_valid_sensor_location(j, i):
+    #        valid_placement_check = False
     
     # (1.2) Now check for WSN
-    valid_WSN = terrain.is_configuration_valid(_map)
+    #valid_WSN = terrain.is_configuration_valid(_map)
 
     # (1.3) Ensure the bearing targets are a minimum distance away
     # Otherwise the 1/r^2 will cause it to just blow up
     # Sweep over all the additionally-placed sensors
-    for check in range(len(x)//2):
-        i, j = int(x[0+2*check]), int(x[1+2*check])
+    #for check in range(len(x)//2):
+    #    i, j = int(x[0+2*check]), int(x[1+2*check])
 
         # Compute the distance from it to a target
-        for k in range(len(targets)//2):
-            tx, ty = targets[0+2*k], targets[1+2*k]
-            dist = ((tx-i)**2+(ty-j)**2)**(1/2)
-            # If w/in the limit, this placement is invalid!
-            if dist < threshold:
-                valid_placement_check = False
+    #    for k in range(len(targets)//2):
+    #        tx, ty = targets[0+2*k], targets[1+2*k]
+    #        dist = ((tx-i)**2+(ty-j)**2)**(1/2)
+    #        # If w/in the limit, this placement is invalid!
+    #        if dist < threshold:
+    #            valid_placement_check = False
 
     # (2) CALCULATE THE SCORE
     # (2.2) Construct the FIM's per target + calculate the det score
@@ -178,14 +180,21 @@ def objective_fcn(x, *args):
 
     inputs = target_localized_successfully, targets, sensor_positions, sensor_rad, meas_type, terrain, LOS_flag
     (FIMs, det_sum) = build_map_FIMS(inputs)
-    det_mult = 1
+    det_mult = 1.
     tr_sum = 0.
 
     # Set optimizer_var to whatever you want (trace, det, eigenvalue)
-    optimizer_var = tr_sum
+    # NOTE: penalties are applied to individual FIMS - see the build_map_FIMS for details!!!!!
+    optimizer_var = det_mult
     for kk in range(len(FIMs)):
-        #optimizer_var = optimizer_var*np.linalg.det(FIMs[kk])
-        optimizer_var += np.trace(FIMs[kk])
+        # FIM correspond to target list one-to-one
+        optimizer_var = optimizer_var*np.linalg.det(FIMs[kk])
+        #optimizer_var += np.trace(FIMs[kk])
+
+    # Now consider the minimum sensor-sensor distance penalty
+    sens_sens_penalty = min_sensor_distance_penalty(sensor_positions, d_sens_min)
+    optimizer_var = optimizer_var*sens_sens_penalty #will multiply by zero if sensor distances are not met, 1 if they are
+
 
     # If a valid config, return (-1)det(FIMs)
     if valid_placement_check and valid_WSN:
@@ -209,7 +218,7 @@ def objective_fcn(x, *args):
 # ------------------------------------------
 # Set a list of additional sensors to place down
 # SENSOR LIST
-sensor_rad_new = [15, 20, 15]
+sensor_rad_new = [25, 25, 25]
 sensor_type_new = ["seismic", "seismic", "acoustic"]
 num_sensors_new = len(sensor_type_new)
 sensor_comm_ratio_new = sensor_comm_ratio # ratio of sensor communication to sensing radius 
@@ -258,6 +267,7 @@ for i in range(2):
         final_pos_LOS.extend(x_out)
         ax_opt.set_title('Function Evaluation across Optimization - LOS considerations')
 
+print('-----------------------------------')
 print("w/o LOS positions:", final_pos_no_LOS)
 print("w/ LOS positions :", final_pos_LOS)
 
