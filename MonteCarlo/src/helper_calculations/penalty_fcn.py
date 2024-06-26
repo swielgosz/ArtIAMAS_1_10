@@ -5,7 +5,7 @@ import numpy as np
     # WSN enforcement (equality)
     
     
-    # Valid placement (equality)
+    
     # Anything else???
 
 # Equality constraint penalties are usually framed as a P = f(x)
@@ -51,5 +51,9 @@ def min_sensor_distance_penalty(sensors, d_min):
                 min_dist = dist
 
     # computes the penalty from the minimum distance of all sensor-sensor pairs
-    return 1/(1+np.exp(-mu*(dist-d_min)))
+    #return 1/(1+np.exp(-mu*(dist-d_min)))
+    return 1
 
+# Valid placement (equality)
+def valid_sensor_penalty(sensors, map):
+    return
