@@ -207,7 +207,6 @@ def objective_fcn(x, *args):
         # Maximize the determinant of the map
         if counter % printer_counts == 0:
             print(counter, optimizer_var, sensor_positions, FIMs)
-            print(sens_sens_penalty, valid_place_penalty)
 
         fcn_eval_list.append(optimizer_var)
         fcn_counter.append(counter)
@@ -240,8 +239,7 @@ for i in range(2):
     elif i == 1:
         maxfun = maxfun_2
     # Construct tuples to pass in
-    # CHANGE BACK WHEN DONE!!!!
-    LOS_flag = 0
+    LOS_flag = i
     existing_sensor_lists = (sensor_locs, sensor_rad, sensor_type, num_sensors, sensor_comm_ratio, meas_type)
     new_sensor_lists = (sensor_rad_new, sensor_type_new, num_sensors_new, sensor_comm_ratio_new, meas_type_new)
     target_ins = (targets, target_localized_successfully, terrain)
