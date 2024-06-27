@@ -41,10 +41,10 @@ terrain.load_from_csv(my_path)
 # INITIAL SENSOR LIST
 # Characteristic list
 sensor_rad = [25, 25, 25]
-sensor_type = ["seismic","acoustic"]#,"seismic"]
+sensor_type = ["seismic","acoustic", "seismic"]
 num_sensors = len(sensor_type)
 sensor_comm_ratio = 1.5 # ratio of sensor communication to sensing radius 
-meas_type = ["radius", "bearing"]#, "radius"] #radius or bearing
+meas_type = ["radius", "bearing", "radius"] #radius or bearing
 LOS_flag = 1 # 1 if want to consider LOS, 0 if don't want to
 
 # Individal sensors
@@ -61,11 +61,11 @@ targets.extend(tar4)
 
 sens1 = [29, 44] 
 sens2 = [33, 29] 
-#sens3 = [58, 34] 
+sens3 = [58, 34] 
 #sens4 = [44, 29] 
 sensor_locs.extend(sens1)
 sensor_locs.extend(sens2)
-#sensor_locs.extend(sens3)
+sensor_locs.extend(sens3)
 #sensor_locs.extend(sens4)
 
 
