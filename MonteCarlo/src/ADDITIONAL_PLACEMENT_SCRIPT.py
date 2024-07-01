@@ -174,12 +174,12 @@ def objective_fcn(x, *args):
 
     # Now consider the two-step optimization
     if step_num == 1:
-        optimizer_var = det_mult
+        optimizer_var = tr_sum
 
     elif step_num == 2:
-        optimizer_var = tr_sum
+        optimizer_var = det_mult
         # penalize the constraint if not within epsilon
-        epsilon = 0.90
+        epsilon = 0.75
         obj_penalty_val = obj_penalty(det_mult, obj_constraint*epsilon)
         #obj_penalty_val = 1
         optimizer_var = optimizer_var*obj_penalty_val
@@ -255,16 +255,16 @@ for i in range(2):
     if i == 0:
         final_pos_no_LOS = sensor_locs.copy()
         final_pos_no_LOS.extend(x_out)
-        ax_opt.set_title('Function Evaluation across Optimization - No LOS considerations')
+        ax_opt.set_title('Function Evaluation across Optimization - first step')
     
     if i == 1:
         final_pos_LOS = sensor_locs.copy()
         final_pos_LOS.extend(x_out)
-        ax_opt.set_title('Function Evaluation across Optimization - LOS considerations')
+        ax_opt.set_title('Function Evaluation across Optimization - second step')
 
 print('-----------------------------------')
-print("w/o LOS positions:", final_pos_no_LOS)
-print("w/ LOS positions :", final_pos_LOS)
+print("first step final values:", final_pos_no_LOS)
+print("second step final values:", final_pos_LOS)
 
 # ------------------------------------------
 # Formatting
@@ -286,18 +286,26 @@ for i in range(num_sensors_new):
     sensor_type_total.append(sensor_type_new[i])
     meas_type_total.append(meas_type_new[i])
 
-
 # Finally, make the map for plotting
 # Localize the new map
 inputs = target_localized_successfully, targets, final_pos_no_LOS, sensor_rad_total, meas_type_total, terrain, 0 #LOS_flag == 1
 (FIMs_det, det_sum) = build_map_FIMS(inputs)
-print("Planning with det determinant val:", det_sum)
-print("Planning with det:", FIMs_det)
+det_mult, tr_sum = 1.0, 0
+for kk in range(len(FIMs)):
+        # FIM correspond to target list one-to-one
+        det_mult = det_mult*np.linalg.det(FIMs_det[kk])
+        tr_sum  += np.trace(FIMs_det[kk])
+print("Planning with det (first step). det and trace:", det_mult, tr_sum)
 
 inputs = target_localized_successfully, targets, final_pos_LOS, sensor_rad_total, meas_type_total, terrain, 0 #LOS_flag == 1
 (FIMs_tr, det_sum) = build_map_FIMS(inputs)
-print("Planning with tr determinant val:", det_sum)
-print("Planning with tr:", FIMs_tr)
+det_mult, tr_sum = 1.0, 0
+for kk in range(len(FIMs)):
+        # FIM correspond to target list one-to-one
+        det_mult = det_mult*np.linalg.det(FIMs_tr[kk])
+        tr_sum  += np.trace(FIMs_tr[kk])
+print("Planning with trace (second step). det and trace:", det_mult, tr_sum)
+print('-----------------------------------')
 
 # Finally, construct the plot and add the ellipses
 _map = make_basic_seismic_map(num_sens_total, sensor_rad_total, sensor_type_total, meas_type_total, sensor_comm_ratio, final_pos_LOS)
@@ -305,8 +313,8 @@ ax = terrain.plot_grid(_map)
 new_map = add_targets(ax, targets)
 for i in range(len(targets)//2):
     target_i = [targets[0+2*i], targets[1+2*i]]
-    new_map = plot_uncertainty_ellipse(new_map, FIMs_det[i], target_i, 2.48, 1, "grey", "analytical")
-    new_map = plot_uncertainty_ellipse(new_map, FIMs_tr[i], target_i, 2.48, 1, "black", "analytical")
+    new_map = plot_uncertainty_ellipse(new_map, FIMs_det[i], target_i, 3.44, 1, "grey", "analytical")
+    new_map = plot_uncertainty_ellipse(new_map, FIMs_tr[i], target_i, 3.44, 1, "black", "analytical")
 
 # Add some text to the plot to show initial vs final placed sensors
 for i in range(len(sensor_locs)//2):
