@@ -77,8 +77,6 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
             
             # Because we can factor our, the 2eta^2 can be added in pretty simply
             FIM = FIM*(1/(sigma_e[i])**2)
-        
-        
 
     return FIM
 
