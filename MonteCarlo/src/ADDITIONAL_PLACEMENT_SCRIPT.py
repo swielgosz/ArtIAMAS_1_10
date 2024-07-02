@@ -71,7 +71,7 @@ sensor_locs.extend(sens3)
 
 # OPTIMIZATION PARAMETERS
 threshold = 6 #minimum distance a sensor must be from a target
-d_sens_min = 4 #minimum sensor-sensor distance
+d_sens_min = 3 #minimum sensor-sensor distance
 vol_tol = 1e-18
 maxfun_1 = 50000 #Max fun w/o LOS
 maxfun_2 = 50000 #Max fun w/ LOS
