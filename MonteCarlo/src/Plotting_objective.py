@@ -31,7 +31,7 @@ terrain.load_from_csv(my_path)
 
 # INITIAL SENSOR LIST
 # Characteristic list
-sensor_rad = [100, 100, 100]
+sensor_rad = [25, 25, 25]
 sensor_type = ["seismic","acoustic","seismic"]
 num_sensors = len(sensor_type)
 sensor_comm_ratio = 1.5 # ratio of sensor communication to sensing radius 
@@ -73,7 +73,7 @@ sensor_type_new = ["seismic", "seismic", "acoustic"]
 num_sensors_new = len(sensor_type_new)
 sensor_comm_ratio_new = sensor_comm_ratio # ratio of sensor communication to sensing radius 
 meas_type_new = ["radial", "radial","bearing"]
-sensors_new = [48.50243865, 50.51935681, 46.39833867, 24.44360616, 47.66750495, 38.5]
+sensors_new = [32.455951836610275, 48.50243865264441, 49.5, 26.480643194634965, 48.50243865264441, 49.5]
 sensors_final = sensor_locs.copy()
 sensor_rad_total = sensor_rad.copy()
 meas_type_total = meas_type.copy()

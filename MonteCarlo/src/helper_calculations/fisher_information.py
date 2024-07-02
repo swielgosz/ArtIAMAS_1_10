@@ -15,7 +15,7 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
     '''
 
     # Penalty constraints
-    d_min = 6
+    d_min = 8
 
     # Need to first generate a list of phi's and r'i
     phi = []
@@ -44,39 +44,37 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
         # Get penalty scalars
         penalty = min_distance_penalty(target, [sensors[0+2*i], sensors[1+2*i]], d_min)
 
-        # Add a distance-based noise term. It's sensor-target dependent
-        # Note: set eta to zero for no contributions!
-
-        eta = 0.000
-        noise_scalar = (1+eta*r[i])
+        # Distance-based noise scaling
+        eta = 0.01
+        dist_noise_scaling = (1+eta*r[i])
 
         if sensor_types[i] == "bearing":
             # If the sensor is placed on the target, avoid div by 0 error
             if np.isclose(r[i], 0, rtol=1e-06) == True:
                 FIM += penalty*(1/(1)**2)*np.array(([(np.cos(phi[i]))**2,-0.5*np.sin(2*phi[i])],
                                 [-0.5*np.sin(2*phi[i]),(np.sin(phi[i]))**2]))
-            else: 
+            
+            else: #note: should be 1/r^2, but I'm testing stuff - JM
                 FIM += penalty*(1/(r[i])**2)*np.array(([(np.cos(phi[i]))**2,-0.5*np.sin(2*phi[i])],
                                 [-0.5*np.sin(2*phi[i]),(np.sin(phi[i]))**2]))
-
-            # These lines add in the range-dependent noise
-            FIM = FIM*(1/(noise_scalar))**2
-
-            # Adds the contribution from the range-dep noise. See derivation
-            FIM += (2*eta**2/(noise_scalar)**2)*np.array(([(np.sin(phi[i]))**2,0.5*np.sin(2*phi[i])],
-                            [0.5*np.sin(2*phi[i]),(np.cos(phi[i]))**2]))
             
-            FIM = FIM*(1/(sigma_e[i])**2)
+            # Add in contributions from dist-dep noise
+            FIM += 2*eta**2*penalty*np.array(([(np.sin(phi[i]))**2,0.5*np.sin(2*phi[i])],
+                            [0.5*np.sin(2*phi[i]),(np.cos(phi[i]))**2]))
+
+            # Add in the dist-noise scaling
+            FIM = FIM*(1/dist_noise_scaling)**2
 
         if sensor_types[i] == "radial" or "radius":
             FIM += penalty*np.array(([(np.sin(phi[i]))**2,0.5*np.sin(2*phi[i])],
                             [0.5*np.sin(2*phi[i]),(np.cos(phi[i]))**2]))
-
-            # This line adds in the range-dependent noise
-            FIM = FIM*((1+2*eta**2)/(noise_scalar))**2
-            
-            # Because we can factor our, the 2eta^2 can be added in pretty simply
-            FIM = FIM*(1/(sigma_e[i])**2)
+        
+            # Add in the dist-noise scaling
+            # Add in contributions from dist-dep noise
+            FIM = FIM*((1+2*eta**2)/dist_noise_scaling)**2
+           
+        FIM = FIM*(1/sigma_e[i])**2
+        #print((1/sigma_e[i])**2, sigma_e[i])
 
     return FIM
 

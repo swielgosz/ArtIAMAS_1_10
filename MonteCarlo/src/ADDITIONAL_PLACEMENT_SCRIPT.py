@@ -45,7 +45,7 @@ sensor_type = ["seismic","acoustic","seismic"]
 num_sensors = len(sensor_type)
 sensor_comm_ratio = 1.5 # ratio of sensor communication to sensing radius 
 meas_type = ["radius", "bearing", "radius"] #radius or bearing
-LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
+LOS_flag = 1 # 1 if want to consider LOS, 0 if don't want to
 
 # Individal sensors
 targets = []
@@ -77,7 +77,7 @@ d_sens_min = 4 #minimum sensor-sensor distance
 vol_tol = 1e-18
 maxfun_1 = 50000 #Max fun w/o LOS
 maxfun_2 = 50000 #Max fun w/ LOS
-max_iters = 5000
+max_iters = 20000
 printer_counts = 5000 #print the results every ___ fcn calls
 # Use list to run a parameter sweep
 vol_tol = [1e-30]
@@ -154,11 +154,11 @@ def objective_fcn(x, *args):
 
     # Set optimizer_var to whatever you want (trace, det, eigenvalue)
     # NOTE: penalties are applied to individual FIMS - see the build_map_FIMS for details!!!!!
-    optimizer_var = tr_sum
+    optimizer_var = det_mult
     for kk in range(len(FIMs)):
         # FIM correspond to target list one-to-one
-        #optimizer_var = optimizer_var*np.linalg.det(FIMs[kk])
-        optimizer_var += np.trace(FIMs[kk])
+        optimizer_var = optimizer_var*np.linalg.det(FIMs[kk])
+        #optimizer_var += np.trace(FIMs[kk])
 
     # Now consider the minimum sensor-sensor distance penalty
     # Need to perform this over all sensors in the WSN
@@ -192,7 +192,7 @@ def objective_fcn(x, *args):
 # ------------------------------------------
 # Set a list of additional sensors to place down
 # SENSOR LIST
-sensor_rad_new = [25, 25, 25]
+sensor_rad_new = [100, 100, 100]
 sensor_type_new = ["seismic", "seismic", "acoustic"]
 num_sensors_new = len(sensor_type_new)
 sensor_comm_ratio_new = sensor_comm_ratio # ratio of sensor communication to sensing radius 
@@ -267,7 +267,7 @@ for i in range(num_sensors_new):
 
 # Finally, make the map for plotting
 # Localize the new map
-inputs = target_localized_successfully, targets, final_pos_no_LOS, sensor_rad_total, meas_type_total, terrain, 1 #LOS_flag == 1
+inputs = target_localized_successfully, targets, final_pos_no_LOS, sensor_rad_total, meas_type_total, terrain, 0 #LOS_flag == 1
 (FIMs_no_LOS, det_sum) = build_map_FIMS(inputs)
 print("No LOS Considerations in planning:", det_sum)
 print("No LOS Considerations in planning:", FIMs_no_LOS)
@@ -278,7 +278,7 @@ print("No LOS Considerations in planning:", FIMs_no_LOS)
 #print("LOS Considerations in planning:", FIMs_LOS)
 
 # Finally, construct the plot and add the ellipses
-_map = make_basic_seismic_map(num_sens_total, sensor_rad_total, sensor_type_total, meas_type_total, sensor_comm_ratio, final_pos_LOS)
+_map = make_basic_seismic_map(num_sens_total, sensor_rad_total, sensor_type_total, meas_type_total, sensor_comm_ratio, final_pos_no_LOS)
 ax = terrain.plot_grid(_map)
 new_map = add_targets(ax, targets)
 for i in range(len(targets)//2):

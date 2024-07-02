@@ -71,44 +71,50 @@ def valid_sensor_penalty(sensors, terrain):
         else:
             penalty_mult += 0
         
-        # Check all the plus/minus
-        if terrain.is_valid_sensor_location(sy+1, sx):
-            penalty_mult += 1
-        else:
-            penalty_mult += 0
-        
-        if terrain.is_valid_sensor_location(sy-1, sx):
-            penalty_mult += 1
-        else:
-            penalty_mult += 0
+        # Check if sensor is at/near the edge of the plot
+        # If so, return just 0 (worst-case penalty)
+        if (sx < 98 and sy < 98 and sx > 1 and sy > 1):
+            # Check all the plus/minus
+            if terrain.is_valid_sensor_location(sy+1, sx):
+                penalty_mult += 1
+            else:
+                penalty_mult += 0
+            
+            if terrain.is_valid_sensor_location(sy-1, sx):
+                penalty_mult += 1
+            else:
+                penalty_mult += 0
 
-        if terrain.is_valid_sensor_location(sy+2, sx):
-            penalty_mult += 1
-        else:
-            penalty_mult += 0
-        
-        if terrain.is_valid_sensor_location(sy-2, sx):
-            penalty_mult += 1
-        else:
-            penalty_mult += 0
-        
-        if terrain.is_valid_sensor_location(sy, sx+1):
-            penalty_mult += 1
-        else:
-            penalty_mult += 0
-        
-        if terrain.is_valid_sensor_location(sy, sx-1):
-            penalty_mult += 1
-        else:
-            penalty_mult += 0
+            if terrain.is_valid_sensor_location(sy+2, sx):
+                penalty_mult += 1
+            else:
+                penalty_mult += 0
+            
+            if terrain.is_valid_sensor_location(sy-2, sx):
+                penalty_mult += 1
+            else:
+                penalty_mult += 0
+            
+            if terrain.is_valid_sensor_location(sy, sx+1):
+                penalty_mult += 1
+            else:
+                penalty_mult += 0
+            
+            if terrain.is_valid_sensor_location(sy, sx-1):
+                penalty_mult += 1
+            else:
+                penalty_mult += 0
 
-        if terrain.is_valid_sensor_location(sy, sx+2):
-            penalty_mult += 1
-        else:
-            penalty_mult += 0
-        
-        if terrain.is_valid_sensor_location(sy, sx-2):
-            penalty_mult += 1
+            if terrain.is_valid_sensor_location(sy, sx+2):
+                penalty_mult += 1
+            else:
+                penalty_mult += 0
+            
+            if terrain.is_valid_sensor_location(sy, sx-2):
+                penalty_mult += 1
+            else:
+                penalty_mult += 0
+
         else:
             penalty_mult += 0
 
