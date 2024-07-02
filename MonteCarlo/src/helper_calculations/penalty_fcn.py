@@ -32,6 +32,7 @@ def min_distance_penalty(target, sensor, d_min):
     
     # Return penalty
     return 1/(1+np.exp(-mu*(d_ts-d_min)))
+    
 
 # Minimum sensor-sensor spacing (inequality)
 def min_sensor_distance_penalty(sensors, d_min):
@@ -53,8 +54,8 @@ def min_sensor_distance_penalty(sensors, d_min):
                 min_dist = dist
 
     # computes the penalty from the minimum distance of all sensor-sensor pairs
-    #return 1/(1+np.exp(-mu*(dist-d_min)))
-    return 1
+    return 1/(1+np.exp(-mu*(min_dist-d_min)))
+    #return 1
 
 # Valid placement (equality)
 def valid_sensor_penalty(sensors, terrain):

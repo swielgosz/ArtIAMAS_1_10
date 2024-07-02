@@ -15,7 +15,7 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
     '''
 
     # Penalty constraints
-    d_min = 10
+    d_min = 6
 
     # Need to first generate a list of phi's and r'i
     phi = []
@@ -47,7 +47,7 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
         # Add a distance-based noise term. It's sensor-target dependent
         # Note: set eta to zero for no contributions!
 
-        eta = 0.01
+        eta = 0.000
         noise_scalar = (1+eta*r[i])
 
         if sensor_types[i] == "bearing":
@@ -63,7 +63,7 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
             FIM = FIM*(1/(noise_scalar))**2
 
             # Adds the contribution from the range-dep noise. See derivation
-            FIM += (2*eta**2/(noise_scalar)**2)**2*np.array(([(np.sin(phi[i]))**2,0.5*np.sin(2*phi[i])],
+            FIM += (2*eta**2/(noise_scalar)**2)*np.array(([(np.sin(phi[i]))**2,0.5*np.sin(2*phi[i])],
                             [0.5*np.sin(2*phi[i]),(np.cos(phi[i]))**2]))
             
             FIM = FIM*(1/(sigma_e[i])**2)

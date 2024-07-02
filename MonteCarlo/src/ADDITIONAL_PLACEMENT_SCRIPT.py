@@ -45,7 +45,7 @@ sensor_type = ["seismic","acoustic","seismic"]
 num_sensors = len(sensor_type)
 sensor_comm_ratio = 1.5 # ratio of sensor communication to sensing radius 
 meas_type = ["radius", "bearing", "radius"] #radius or bearing
-LOS_flag = 1 # 1 if want to consider LOS, 0 if don't want to
+LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
 
 # Individal sensors
 targets = []
@@ -70,13 +70,15 @@ sensor_locs.extend(sens3)
 
 
 # OPTIMIZATION PARAMETERS
-threshold = 4 #minimum distance a sensor must be from a target
-d_sens_min = 3 #minimum sensor-sensor distance
+threshold = 8 #minimum distance a sensor must be from a target
+    # NOTE: THIS IS ENFORCED IN FISHER_INFORMATION.PY -> BUILD_FIM()!!!
+    # GO THERE TO CHANGE THE PARAMETER
+d_sens_min = 4 #minimum sensor-sensor distance
 vol_tol = 1e-18
 maxfun_1 = 50000 #Max fun w/o LOS
 maxfun_2 = 50000 #Max fun w/ LOS
 max_iters = 5000
-printer_counts = 1000 #print the results every ___ fcn calls
+printer_counts = 5000 #print the results every ___ fcn calls
 # Use list to run a parameter sweep
 vol_tol = [1e-30]
 # vol_tol = [1e-14] #optimization param
@@ -145,39 +147,6 @@ def objective_fcn(x, *args):
     # (1) CHECK FOR VALID CONFIGURATIONS
     valid_placement_check, valid_WSN = True, True
 
-    # (1.1) First check for valid placement on additionally placed sensors
-    #for check in range(len(x)//2):
-    #    i, j = int(x[0+2*check]), int(x[1+2*check]) #convert to ints 
-
-        # If ANY sensors are invalid, the entire config is invalid
-        # Note that (i,j) are switched to respect dims of terrain class
-        # this script is (x,y) = width, height. 
-        # valid sensor check is (x, y) = height, width
-    #    if not terrain.is_valid_sensor_location(j, i):
-    #        valid_placement_check = False
-    
-    # (1.2) Now check for WSN
-    #valid_WSN = terrain.is_configuration_valid(_map)
-
-    # (1.3) Ensure the bearing targets are a minimum distance away
-    # Otherwise the 1/r^2 will cause it to just blow up
-    # Sweep over all the additionally-placed sensors
-    #for check in range(len(x)//2):
-    #    i, j = int(x[0+2*check]), int(x[1+2*check])
-
-        # Compute the distance from it to a target
-    #    for k in range(len(targets)//2):
-    #        tx, ty = targets[0+2*k], targets[1+2*k]
-    #        dist = ((tx-i)**2+(ty-j)**2)**(1/2)
-            # If w/in the limit, this placement is invalid!
-    #        if dist < threshold:
-    #            valid_placement_check = False
-
-    # (2) CALCULATE THE SCORE
-    # (2.2) Construct the FIM's per target + calculate the det score
-    #sensor_positions[-2] = x[0]
-    #sensor_positions[-1] = x[1]
-
     inputs = target_localized_successfully, targets, sensor_positions, sensor_rad, meas_type, terrain, LOS_flag
     (FIMs, det_sum) = build_map_FIMS(inputs)
     det_mult = 1.
@@ -185,11 +154,11 @@ def objective_fcn(x, *args):
 
     # Set optimizer_var to whatever you want (trace, det, eigenvalue)
     # NOTE: penalties are applied to individual FIMS - see the build_map_FIMS for details!!!!!
-    optimizer_var = det_mult
+    optimizer_var = tr_sum
     for kk in range(len(FIMs)):
         # FIM correspond to target list one-to-one
-        optimizer_var = optimizer_var*np.linalg.det(FIMs[kk])
-        #optimizer_var += np.trace(FIMs[kk])
+        #optimizer_var = optimizer_var*np.linalg.det(FIMs[kk])
+        optimizer_var += np.trace(FIMs[kk])
 
     # Now consider the minimum sensor-sensor distance penalty
     # Need to perform this over all sensors in the WSN
@@ -233,11 +202,9 @@ meas_type_new = ["radial", "radial","bearing"]
 final_pos_LOS = []
 final_pos_no_LOS = []
 
-for i in range(2):
-    if i == 0:
-        maxfun = maxfun_1
-    elif i == 1:
-        maxfun = maxfun_2
+for i in range(1):
+    maxfun = maxfun_1
+
     # Construct tuples to pass in
     LOS_flag = 0
     existing_sensor_lists = (sensor_locs, sensor_rad, sensor_type, num_sensors, sensor_comm_ratio, meas_type)
@@ -267,6 +234,7 @@ for i in range(2):
         final_pos_no_LOS = sensor_locs.copy()
         final_pos_no_LOS.extend(x_out)
         ax_opt.set_title('Function Evaluation across Optimization - No LOS considerations')
+        print(min_sensor_distance_penalty(final_pos_no_LOS, d_sens_min))
     if i == 1:
         final_pos_LOS = sensor_locs.copy()
         final_pos_LOS.extend(x_out)
@@ -304,10 +272,10 @@ inputs = target_localized_successfully, targets, final_pos_no_LOS, sensor_rad_to
 print("No LOS Considerations in planning:", det_sum)
 print("No LOS Considerations in planning:", FIMs_no_LOS)
 
-inputs = target_localized_successfully, targets, final_pos_LOS, sensor_rad_total, meas_type_total, terrain, 1
-(FIMs_LOS, det_sum) = build_map_FIMS(inputs)
-print("LOS Considerations in planning:", det_sum)
-print("LOS Considerations in planning:", FIMs_LOS)
+#inputs = target_localized_successfully, targets, final_pos_LOS, sensor_rad_total, meas_type_total, terrain, 1
+#(FIMs_LOS, det_sum) = build_map_FIMS(inputs)
+#print("LOS Considerations in planning:", det_sum)
+#print("LOS Considerations in planning:", FIMs_LOS)
 
 # Finally, construct the plot and add the ellipses
 _map = make_basic_seismic_map(num_sens_total, sensor_rad_total, sensor_type_total, meas_type_total, sensor_comm_ratio, final_pos_LOS)
@@ -316,7 +284,7 @@ new_map = add_targets(ax, targets)
 for i in range(len(targets)//2):
     target_i = [targets[0+2*i], targets[1+2*i]]
     new_map = plot_uncertainty_ellipse(new_map, FIMs_no_LOS[i], target_i, 2.48, 1, "grey", "analytical")
-    new_map = plot_uncertainty_ellipse(new_map, FIMs_LOS[i], target_i, 2.48, 1, "black", "analytical")
+    #new_map = plot_uncertainty_ellipse(new_map, FIMs_LOS[i], target_i, 2.48, 1, "black", "analytical")
 
 # Add some text to the plot to show initial vs final placed sensors
 for i in range(len(sensor_locs)//2):
