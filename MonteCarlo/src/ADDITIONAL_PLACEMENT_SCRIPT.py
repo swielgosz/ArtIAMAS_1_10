@@ -70,7 +70,7 @@ sensor_locs.extend(sens3)
 
 
 # OPTIMIZATION PARAMETERS
-threshold = 6 #minimum distance a sensor must be from a target
+threshold = 4 #minimum distance a sensor must be from a target
 d_sens_min = 3 #minimum sensor-sensor distance
 vol_tol = 1e-18
 maxfun_1 = 50000 #Max fun w/o LOS
@@ -239,7 +239,7 @@ for i in range(2):
     elif i == 1:
         maxfun = maxfun_2
     # Construct tuples to pass in
-    LOS_flag = i
+    LOS_flag = 0
     existing_sensor_lists = (sensor_locs, sensor_rad, sensor_type, num_sensors, sensor_comm_ratio, meas_type)
     new_sensor_lists = (sensor_rad_new, sensor_type_new, num_sensors_new, sensor_comm_ratio_new, meas_type_new)
     target_ins = (targets, target_localized_successfully, terrain)
