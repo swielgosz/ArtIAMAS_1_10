@@ -1,6 +1,7 @@
 import numpy as np
 from .sensor_vision import get_LOS_coeff
 from .landscape import Configuration, Node
+from .penalty_fcn import min_distance_penalty
 
 def build_FIM(sensors, target, sensor_types, sigma_e):
     '''
@@ -10,7 +11,11 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
     about the localized target, p
     
     Returns the FIM following sources [1], [3]
+    PENALTY CONSTRAINTS HARD-CODED HERE!!!
     '''
+
+    # Penalty constraints
+    d_min = 8
 
     # Need to first generate a list of phi's and r'i
     phi = []
@@ -34,21 +39,39 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
 
     # Consturct the matrix
     FIM = np.array(([0.,0.],[0.,0.]))
-    for i in range(len(phi)):
+    for i in range(len(phi)): #phi is one-to-one with sensor. Loops over sensor list effectively
+
+        # Get penalty scalars
+        penalty = min_distance_penalty(target, [sensors[0+2*i], sensors[1+2*i]], d_min)
+
+        # Distance-based noise scaling
+        eta = 0.01
+        dist_noise_scaling = (1+eta*r[i])
 
         if sensor_types[i] == "bearing":
             # If the sensor is placed on the target, avoid div by 0 error
             if np.isclose(r[i], 0, rtol=1e-06) == True:
-                FIM += (1/(1)**2)*np.array(([(np.cos(phi[i]))**2,-0.5*np.sin(2*phi[i])],
+                FIM += penalty*(1/(1)**2)*np.array(([(np.cos(phi[i]))**2,-0.5*np.sin(2*phi[i])],
                                 [-0.5*np.sin(2*phi[i]),(np.sin(phi[i]))**2]))
+            
             else: #note: should be 1/r^2, but I'm testing stuff - JM
-                FIM += (1/(r[i])**2)*np.array(([(np.cos(phi[i]))**2,-0.5*np.sin(2*phi[i])],
+                FIM += penalty*(1/(r[i])**2)*np.array(([(np.cos(phi[i]))**2,-0.5*np.sin(2*phi[i])],
                                 [-0.5*np.sin(2*phi[i]),(np.sin(phi[i]))**2]))
-        
+            
+            # Add in contributions from dist-dep noise
+            FIM += 2*eta**2*penalty*np.array(([(np.sin(phi[i]))**2,0.5*np.sin(2*phi[i])],
+                            [0.5*np.sin(2*phi[i]),(np.cos(phi[i]))**2]))
+
+            # Add in the dist-noise scaling
+            FIM = FIM*(1/dist_noise_scaling)**2
+
         if sensor_types[i] == "radial" or "radius":
-            FIM += np.array(([(np.sin(phi[i]))**2,0.5*np.sin(2*phi[i])],
+            FIM += penalty*np.array(([(np.sin(phi[i]))**2,0.5*np.sin(2*phi[i])],
                             [0.5*np.sin(2*phi[i]),(np.cos(phi[i]))**2]))
         
+            # Add in the dist-noise scaling
+            # Add in contributions from dist-dep noise
+            FIM = FIM*((1+2*eta**2)/dist_noise_scaling)**2
            
         FIM = FIM*(1/sigma_e[i])**2
         #print((1/sigma_e[i])**2, sigma_e[i])
@@ -71,6 +94,7 @@ def build_map_FIMS(inputs):
     target_localized_successfully, targets, sensor_locs, sensor_rad,meas_type, terrain, LOS_flag = inputs
     FIMs = []
     det_sum = 0.
+    trace_sum = 0.
     for i in range(len(targets)//2):
         sub_sensor_FIM = []
         sub_sensor_type = []
@@ -81,6 +105,7 @@ def build_map_FIMS(inputs):
             FIM_p = np.array(([0, 0],[0,0]))
             FIMs.append(FIM_p)
             det_sum += np.linalg.det(FIMs[i])
+            trace_sum += np.trace(FIMs[i])
         
         # For localized targets
         elif target_localized_successfully[i] == 1:
@@ -88,7 +113,7 @@ def build_map_FIMS(inputs):
             
             # Check if the sensor sees the target
             for j in range(len(sensor_locs)//2):
-                x, y = int(sensor_locs[0+2*j]), int(sensor_locs[1+2*j])
+                x, y = sensor_locs[0+2*j], sensor_locs[1+2*j] #Note, leave these as floats!
                 dist = ((x-xt)**2+(y-yt)**2)**(1/2)
                 if dist < sensor_rad[j]:
                     sub_sensor_FIM.append(x)
@@ -101,11 +126,13 @@ def build_map_FIMS(inputs):
             
             # Take the sub-list of sensors that see a target
             # and calculate the FIM
-            print(sub_sensor_FIM, [xt, yt], sub_sensor_type, sub_sensor_sigma)
+            # Penalty function is applied to EACH FIM!! - See build_FIM for application
             FIMs.append(build_FIM(sub_sensor_FIM, [xt, yt], sub_sensor_type, sub_sensor_sigma))
             det_sum += np.linalg.det(FIMs[i])
+            trace_sum += np.trace(FIMs[i])
 
-    return FIMs, det_sum
+    # 2nd term is what we're returning to the objective!
+    return FIMs, trace_sum
 
 
 def plot_uncertainty_ellipse(_map, FIM, target, confidence, plot_scale, color, solve_type):
