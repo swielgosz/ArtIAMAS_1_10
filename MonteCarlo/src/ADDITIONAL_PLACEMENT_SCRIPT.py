@@ -15,7 +15,7 @@ from helper_calculations.sensor_vision import sensor_vision, sensor_reading, tar
 from helper_calculations.fisher_information import build_FIM, build_map_FIMS, plot_uncertainty_ellipse
 from helper_calculations.localization_calculations import sensor_localization_routine
 from helper_calculations.sensor_vision import get_LOS_coeff
-from helper_calculations.penalty_fcn import min_distance_penalty, min_sensor_distance_penalty, valid_sensor_penalty
+from helper_calculations.penalty_fcn import min_distance_penalty, min_sensor_distance_penalty, valid_sensor_penalty, WSN_penalty
 
 # -------- DESCRIPTION -----------------
 # This script was makes an ADDITIONAL of a set of sensors by minimizing
@@ -170,6 +170,19 @@ def objective_fcn(x, *args):
     # sense to check the pre-existing positions as well
     valid_place_penalty = valid_sensor_penalty(x, terrain)
     optimizer_var = optimizer_var*valid_place_penalty #will multiply by zero if sensor distances are not met, 1 if they are
+
+    # Finally, check that the sensors are indeed in a WSN and add penalty as necessary
+    # Uses _map, constructed above
+    valid_WSN = terrain.is_configuration_valid(_map)
+    if valid_WSN:
+        valid_WSN_penalty = 1 # 1 is satisfaction of WSN
+    else:
+        # Else, calculate the penalty on WSN
+        # Note: only ONE comm radii is accepted. Not written to vary (just yet!)
+        comm_radii = sensor_rad_new[0]*sensor_comm_ratio # just some scalar
+        valid_WSN_penalty = WSN_penalty(sensor_positions, comm_radii) 
+
+    optimizer_var = optimizer_var*valid_WSN_penalty
 
     # If a valid config, return (-1)det(FIMs)
     if valid_placement_check and valid_WSN:

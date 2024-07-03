@@ -496,7 +496,7 @@ class Configuration:
 
         # Implement breadth first search to check if sensors are connected
         visited = [] # List for visited nodes.
-        queue = []     #Initialize a queue
+        queue = []     # Initialize a queue
         visited.append('0')
         queue.append('0')
 

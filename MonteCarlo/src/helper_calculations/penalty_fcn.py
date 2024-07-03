@@ -120,3 +120,28 @@ def valid_sensor_penalty(sensors, terrain):
 
     # Return the average
     return (penalty_mult/(10*len(sensors)//2))
+
+def WSN_penalty(sensors, comm_radii):
+    sensors_list = []
+    for i in range(len(sensors)//2):
+        sensors_list.append([sensors[0+2*i], sensors[1+2*i]])
+
+    # Just something large
+    min_dist = 1000
+    mu = 5
+
+    # find the smallest value that violates the constraint
+    for i, sensor_i in enumerate(sensors_list):
+        for j, sensor_j in enumerate(sensors_list):
+            if i == j:
+                continue
+            else:
+                xi, yi = sensor_i[0], sensor_i[1]
+                xj, yj = sensor_j[0], sensor_j[1]
+                dist = ((xi-xj)**2+(yi-yj)**2)**(1/2)
+
+                if ((dist <= min_dist) & (dist > comm_radii)):
+                    min_dist = dist
+
+
+    return 1/(1+np.exp(mu*(min_dist-comm_radii)))
