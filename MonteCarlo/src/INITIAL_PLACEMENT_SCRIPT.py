@@ -11,8 +11,8 @@ import time
 from helper_calculations.make_map import make_basic_seismic_map
 import matplotlib.pyplot as plt
 from helper_calculations.make_target_map import add_targets
-from helper_calculations.sensor_vision import sensor_vision, sensor_reading, target_localization_both, target_localization_bearing, target_localization_radius
-from helper_calculations.fisher_information import build_FIM, build_map_FIMS, plot_uncertainty_ellipse
+# from helper_calculations.sensor_vision import sensor_vision, sensor_reading, target_localization_both, target_localization_bearing, target_localization_radius
+from helper_calculations.fisher_information import build_FIM, build_map_FIMS, plot_uncertainty_ellipse, return_obj_vals
 from helper_calculations.localization_calculations import sensor_localization_routine
 from helper_calculations.sensor_vision import get_LOS_coeff
 from helper_calculations.penalty_fcn import min_distance_penalty, min_sensor_distance_penalty, valid_sensor_penalty, WSN_penalty
@@ -46,7 +46,7 @@ d_sens_min = 4 #minimum sensor-sensor distance
 vol_tol = 1e-18
 maxfun_1 = 50000 #Max fun w/o LOS
 max_iters = 20000
-printer_counts = 5000 #print the results every ___ fcn calls
+printer_counts = 1000 #print the results every ___ fcn calls
 # Use list to run a parameter sweep
 vol_tol = [1e-30]
 # vol_tol = [1e-14] #optimization param
@@ -88,6 +88,7 @@ def objective_fcn(x, *args):
         for pt in target:
             targets_in.append(pt) 
 
+    # Compute the FIMs
     inputs = target_localized_successfully, targets_in, sensor_positions, sensor_rad, meas_type, terrain, LOS_flag
     (FIMs, det_sum) = build_map_FIMS(inputs)
     det_mult = 1.
@@ -114,7 +115,7 @@ def objective_fcn(x, *args):
     # sense to check the pre-existing positions as well
     valid_place_penalty = valid_sensor_penalty(x, terrain)
     det_mult = det_mult*valid_place_penalty #will multiply by zero if sensor distances are not met, 1 if they are
-    tr_sum  = tr_sum *valid_place_penalty
+    tr_sum  = tr_sum*valid_place_penalty
     #eig_abs_sum  = eig_abs_sum*valid_place_penalty
 
     # Finally, check that the sensors are indeed in a WSN and add penalty as necessary
@@ -136,25 +137,28 @@ def objective_fcn(x, *args):
     # For TWO STEP OPTIMIZATION, add an epsilon constraint
     # Now consider the two-step optimization
     def obj_penalty(obj, obj_const):
-        mu = 0.25
+        mu = 1
         # critical point at eps*step1_obj
         return 1/(1+np.exp(-mu*(obj-obj_const)))
     
+    # PICK OPTIMIZATION ORDER HERE!
     if step_num == 1:
-        optimizer_var = tr_sum
+        optimizer_var = tr_sum #CHANGE THIS 
+        eps_opt_penalty = 1
+        prev_opt = 1
     elif step_num == 2:
-        optimizer_var = det_mult
-        # penalize the constraint if not within epsilon
-        epsilon = 0.9
-        obj_penalty_val = obj_penalty(det_mult, obj_constraint*epsilon)
-        #obj_penalty_val = 1
-        optimizer_var = optimizer_var*obj_penalty_val
+        optimizer_var = det_mult # CHANGE THIS
+        prev_opt = tr_sum # CHANGE THIS TO MATCH STEP 1
+        epsilon = 0.95
+        eps_opt_penalty = obj_penalty(prev_opt, epsilon*obj_constraint)
+    
+    optimizer_var = optimizer_var * eps_opt_penalty
 
     # If a valid config, return (-1)det(FIMs)
     if valid_placement_check and valid_WSN:
         # Maximize the determinant of the map
         if counter % printer_counts == 0:
-            print(counter, optimizer_var, sensor_positions, FIMs)
+            print(counter, tr_sum, det_mult)
 
         fcn_eval_list.append(optimizer_var)
         fcn_counter.append(counter)
@@ -169,11 +173,12 @@ def objective_fcn(x, *args):
         return 0
 
 # ---------RUN THE OPTIMIZER-------------------
-
 # Generate target mesh here!
 target_mesh_pts = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
 
-for i in range(1):
+# Run the multi-objective placements!
+# To pick what's being optimized first, change it around in the objective fcn
+for i in range(2): # set to one if doing single-step. Two otherwise
     step_num = i+1
 
     if i == 0: # first pass, set constraint to zero
@@ -206,25 +211,30 @@ for i in range(1):
         x_out = res.x
         obj_constraint = -1.0*res.fun
 
+        # Now try fine tuning by optimizing locally!
+        res = optimize.minimize(objective_fcn, x_out, args = sensor_list, method='BFGS')
+        x_out = res.x
+        print(res.message, "Final values:", res.x)
+
     # Multi-objective optimization!
     # If we don't want to run it, just set range(1) instead of (2) in the loop
     if i == 0:
         first_run_positions = x_out
+        ax_opt.set_title('First optimization')
     if i == 1:
         second_run_positions = x_out
+        ax_opt.set_title('Second optimization')
 
     # Save the number of runs we did for later
     num_runs = i+1
 
 # Plot formatting
-ax_opt.set_title('Initial Placement Optimization')
 ax_opt.set_ylabel('Objective Function Evaluations'), ax_opt.set_xlabel('Iteration Count')
 #ax_opt.set_ylim([min(fcn_eval_list)*1.25, max(fcn_eval_list)*1.25])
 ax_opt.grid(True, which='minor')  
 plt.show()
 
 print('-----------------------------------')
-
 # ---------FORMAT AND ANALYSIS------------------
 # Finally, make the map for plotting
 # Localize the new map
@@ -234,20 +244,10 @@ for target in target_mesh_pts:
     for pt in target:
         targets_in.append(pt) 
 
-# fcn for computing the trace and det
-def return_obj_vals(FIMs):
-    det_mult = 1.
-    tr_sum = 0.
-    for kk in range(len(FIMs)):
-        # FIM correspond to target list one-to-one
-        det_mult = det_mult*np.linalg.det(FIMs[kk])
-        tr_sum += np.trace(FIMs[kk])
-    return det_mult, tr_sum
-
 # Analyze first run results
 inputs = target_localized_successfully, targets_in, first_run_positions, sensor_rad, meas_type, terrain, 0 #LOS_flag == 1
 (FIMs_first_run, det_sum) = build_map_FIMS(inputs)
-tr_sum1, det_mult1 = return_obj_vals(FIMs_first_run)
+det_mult1, tr_sum1 = return_obj_vals(FIMs_first_run)
 print("First run results (trace and det):", tr_sum1, det_mult1)
 print("Associated positions:", first_run_positions)
 _map = make_basic_seismic_map(num_sensors, sensor_rad, sensor_type, meas_type, sensor_comm_ratio, first_run_positions)
@@ -256,27 +256,62 @@ _map = make_basic_seismic_map(num_sensors, sensor_rad, sensor_type, meas_type, s
 if num_runs == 2:
     inputs = target_localized_successfully, targets_in, second_run_positions, sensor_rad, meas_type, terrain, 0 #LOS_flag == 1
     (FIMs_sec_run, det_sum) = build_map_FIMS(inputs)
-    tr_sum2, det_mult2 = return_obj_vals(FIMs_sec_run)
-    print("First run results (trace and det):", tr_sum2, det_mult2)
+    det_mult2, tr_sum2 = return_obj_vals(FIMs_sec_run)
+    print("Second run results (trace and det):", tr_sum2, det_mult2)
     print("Associated positions:", second_run_positions)
     # Reconstructs the map if a second run was made
     _map = make_basic_seismic_map(num_sensors, sensor_rad, sensor_type, meas_type, sensor_comm_ratio, second_run_positions)
 
-# Finally, construct the plot and add the ellipses
+# Create a random placement for comparison
+# First, compute the centroid of the mesh
+mx, my, count = 0., 0., 0
+for target in target_mesh_pts:
+    mx += target[0]
+    my += target[1]
+    count += 1
+centroid_x, centroid_y = mx/count, my/count
+
+# Generate a random sensor position using a rand theta
+rand_positions = []
+for i in range(len(meas_type)):
+    theta_rand = np.random.rand(1) * (2*3.14159) #produce a random theta in radians
+    x_rand, y_rand = threshold*np.cos(theta_rand) + centroid_x, threshold*np.sin(theta_rand) + centroid_y
+    rand_positions.append(x_rand[0])
+    rand_positions.append(y_rand[0])
+
+# Analyze random run results
+inputs = target_localized_successfully, targets_in, rand_positions, sensor_rad, meas_type, terrain, 0 #LOS_flag == 1
+(FIMs_random, det_sum) = build_map_FIMS(inputs)
+det_multR, tr_sumR = return_obj_vals(FIMs_random)
+print("Random run results (trace and det):", tr_sumR, det_multR)
+print("Associated positions:", rand_positions)
+
+
+print('-----------------------------------')
+# ---------PLOTTING AND VISUALIZATION------------------
+# Comment out the random ones if we don't want to visualize them! 
+# It's not always necessary because the ellipses can get unecessarily large
 ax = terrain.plot_grid(_map)
 new_map = add_targets(ax, targets_in)
 for i in range(len(targets_in)//2):
     target_i = [targets_in[0+2*i], targets_in[1+2*i]]
     new_map = plot_uncertainty_ellipse(new_map, FIMs_first_run[i], target_i, 2.48, 1, "grey", "analytical")
+    #new_map = plot_uncertainty_ellipse(new_map, FIMs_random[i], target_i, 2.48, 1, "blue", "numerical")
     if num_runs == 2:
         new_map = plot_uncertainty_ellipse(new_map, FIMs_sec_run[i], target_i, 2.48, 1, "black", "analytical")
 
 # Add some text to the plot to show initial vs final placed sensors
+for i in range(len(first_run_positions)//2):
+        plt.plot(first_run_positions[0+2*i], first_run_positions[1+2*i], marker='x')
+        plt.text(first_run_positions[0+2*i]+1, first_run_positions[1+2*i]+1, "Fir")
+
 if num_runs == 2:
     for i in range(len(second_run_positions)//2):
-        plt.text(second_run_positions[0+2*i]+1, second_run_positions[1+2*i]+1, "In")
-elif num_runs == 1:
-    for i in range(len(first_run_positions)//2):
-        plt.text(first_run_positions[0+2*i]+1, first_run_positions[1+2*i]+1, "In")
+        plt.plot(second_run_positions[0+2*i], second_run_positions[1+2*i], marker='x')
+        plt.text(second_run_positions[0+2*i]+1, second_run_positions[1+2*i]+1, "Sec")
+
+#for i in range(len(rand_positions)//2):
+#        plt.text(rand_positions[0+2*i]+1, rand_positions[1+2*i]+1, "Rnd")
+
 
 plt.show()

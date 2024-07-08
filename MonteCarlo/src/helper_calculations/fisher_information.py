@@ -181,3 +181,14 @@ def plot_uncertainty_ellipse(_map, FIM, target, confidence, plot_scale, color, s
               color = color, lw = 1.2, linestyle = linestyle)
 
     return _map
+
+
+# fcn for computing the trace and det
+def return_obj_vals(FIMs):
+    det_mult = 1.
+    tr_sum = 0.
+    for kk in range(len(FIMs)):
+        # FIM correspond to target list one-to-one
+        det_mult = det_mult*np.linalg.det(FIMs[kk])
+        tr_sum += np.trace(FIMs[kk])
+    return det_mult, tr_sum
