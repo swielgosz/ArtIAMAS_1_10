@@ -207,14 +207,14 @@ for i in range(2): # set to one if doing single-step. Two otherwise
             ax_opt.plot(fcn_counter, fcn_eval_list, linestyle='None', marker='+')
         elif i == 1:
             ax_opt.plot(fcn_counter, fcn_eval_list, linestyle='None', marker='o')
-        print(res.message, "Final values:", res.x)
+        print(res.message, "Coarse final values:", res.x)
         x_out = res.x
-        obj_constraint = -1.0*res.fun
 
         # Now try fine tuning by optimizing locally!
-        res = optimize.minimize(objective_fcn, x_out, args = sensor_list, method='BFGS')
+        res = optimize.minimize(objective_fcn, x_out, args = sensor_list, method='BFGS', jac='3-point')
         x_out = res.x
-        print(res.message, "Final values:", res.x)
+        obj_constraint = -1.0*res.fun
+        print(res.message, "Fine final values:", res.x)
 
     # Multi-objective optimization!
     # If we don't want to run it, just set range(1) instead of (2) in the loop
