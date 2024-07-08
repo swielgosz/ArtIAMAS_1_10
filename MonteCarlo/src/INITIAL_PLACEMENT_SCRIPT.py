@@ -31,10 +31,10 @@ terrain.load_from_csv(my_path)
 
 # INITIAL SENSOR LIST
 # Characteristic list
-sensor_rad = [100, 100, 100, 100]
+sensor_rad = [50, 50, 50, 50]
 sensor_type = ["seismic","acoustic","seismic", "acoustic"]
 num_sensors = len(sensor_type)
-sensor_comm_ratio = 1.5 # ratio of sensor communication to sensing radius 
+sensor_comm_ratio = 0.4 # ratio of sensor communication to sensing radius 
 meas_type = ["radius", "bearing", "radius", "bearing"] #radius or bearing
 LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
 
@@ -98,8 +98,8 @@ def objective_fcn(x, *args):
     optimizer_var = tr_sum
     for kk in range(len(FIMs)):
         # FIM correspond to target list one-to-one
-        optimizer_var = optimizer_var*np.linalg.det(FIMs[kk])
-        #optimizer_var += np.trace(FIMs[kk])
+        #optimizer_var = optimizer_var*np.linalg.det(FIMs[kk])
+        optimizer_var += np.trace(FIMs[kk])
 
     # Now consider the minimum sensor-sensor distance penalty
     # Need to perform this over all sensors in the WSN
@@ -120,7 +120,8 @@ def objective_fcn(x, *args):
     else:
         # Else, calculate the penalty on WSN
         # Note: only ONE comm radii is accepted. Not written to vary (just yet!)
-        comm_radii = sensor_rad[0]*sensor_comm_ratio # just some scalar
+        # comm_radii should match the inputs into terrain.is_config_valid(_map)
+        comm_radii = sensor_rad[0]*sensor_comm_ratio 
         valid_WSN_penalty = WSN_penalty(sensor_positions, comm_radii) 
 
     optimizer_var = optimizer_var*valid_WSN_penalty
@@ -146,7 +147,7 @@ def objective_fcn(x, *args):
 # ---------RUN THE OPTIMIZER-------------------
 
 # Generate target mesh here!
-target_mesh_pts = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42]]
+target_mesh_pts = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
 
 for i in range(1):
     maxfun = maxfun_1

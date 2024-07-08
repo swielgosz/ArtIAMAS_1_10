@@ -21,7 +21,7 @@ def min_distance_penalty(target, sensor, d_min):
     ACCEPTS: target (2x1 list of floats), sensor (2x1 list floats), d_min (scalar of minimum distnace)
     RETURNS: penalty scalar
     '''
-    mu = 5. # parameter in the sigmoid fcn
+    mu = 10. # parameter in the sigmoid fcn
     tx, ty = target[0], target[1]
     
     # Loop over each sensor and add the penalty

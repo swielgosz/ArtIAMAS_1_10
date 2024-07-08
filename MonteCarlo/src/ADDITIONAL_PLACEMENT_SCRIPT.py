@@ -43,7 +43,7 @@ terrain.load_from_csv(my_path)
 sensor_rad = [25, 25, 25]
 sensor_type = ["seismic","acoustic","seismic"]
 num_sensors = len(sensor_type)
-sensor_comm_ratio = 1.5 # ratio of sensor communication to sensing radius 
+sensor_comm_ratio = 0.75 # ratio of sensor communication to sensing radius 
 meas_type = ["radius", "bearing", "radius"] #radius or bearing
 LOS_flag = 1 # 1 if want to consider LOS, 0 if don't want to
 
