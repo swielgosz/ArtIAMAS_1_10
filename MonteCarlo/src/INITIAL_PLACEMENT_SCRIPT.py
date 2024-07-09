@@ -12,7 +12,7 @@ from helper_calculations.make_map import make_basic_seismic_map
 import matplotlib.pyplot as plt
 from helper_calculations.make_target_map import add_targets
 # from helper_calculations.sensor_vision import sensor_vision, sensor_reading, target_localization_both, target_localization_bearing, target_localization_radius
-from helper_calculations.fisher_information import build_FIM, build_map_FIMS, plot_uncertainty_ellipse, return_obj_vals
+from helper_calculations.fisher_information import build_FIM, build_map_FIMS, plot_uncertainty_ellipse, return_obj_vals, uncertainty_ellipse_stats
 from helper_calculations.localization_calculations import sensor_localization_routine
 from helper_calculations.sensor_vision import get_LOS_coeff
 from helper_calculations.penalty_fcn import min_distance_penalty, min_sensor_distance_penalty, valid_sensor_penalty, WSN_penalty
@@ -149,13 +149,13 @@ def objective_fcn(x, *args):
     elif step_num == 2:
         optimizer_var = det_mult # CHANGE THIS
         prev_opt = tr_sum # CHANGE THIS TO MATCH STEP 1
-        epsilon = 0.95
+        epsilon = 0.75
         eps_opt_penalty = obj_penalty(prev_opt, epsilon*obj_constraint)
     
-    optimizer_var = optimizer_var * eps_opt_penalty
+    #optimizer_var = optimizer_var * eps_opt_penalty
 
     # If a valid config, return (-1)det(FIMs)
-    if valid_placement_check and valid_WSN:
+    if valid_placement_check:# and valid_WSN:
         # Maximize the determinant of the map
         if counter % printer_counts == 0:
             print(counter, tr_sum, det_mult)
@@ -201,8 +201,12 @@ for i in range(2): # set to one if doing single-step. Two otherwise
     ax_opt = fig.add_subplot()
     for count, vol_tol_test in enumerate(vol_tol): #lets you run multiple tolerances if you want
         fcn_eval_list, fcn_counter = [], []
+        
         print("Start optimizer")
-        res = optimize.direct(objective_fcn, bounds=bounds, args = sensor_list, vol_tol=vol_tol_test, maxfun = maxfun_1, maxiter = max_iters)
+        #res = optimize.direct(objective_fcn, bounds=bounds, args = sensor_list, vol_tol=vol_tol_test, maxfun = maxfun_1, maxiter = max_iters)
+        #res = optimize.differential_evolution(objective_fcn, bounds=bounds, args=sensor_list, strategy='best1bin', maxiter=max_iters)
+        res = optimize.dual_annealing(objective_fcn, bounds=bounds, args=sensor_list, maxfun=max_iters)
+        
         if i == 0:
             ax_opt.plot(fcn_counter, fcn_eval_list, linestyle='None', marker='+')
         elif i == 1:
@@ -291,14 +295,26 @@ print('-----------------------------------')
 # ---------PLOTTING AND VISUALIZATION------------------
 # Comment out the random ones if we don't want to visualize them! 
 # It's not always necessary because the ellipses can get unecessarily large
+FIM_area_first, FIM_area_second = [], []
+maj_axis_first, maj_axis_second = [], []
+
 ax = terrain.plot_grid(_map)
 new_map = add_targets(ax, targets_in)
 for i in range(len(targets_in)//2):
     target_i = [targets_in[0+2*i], targets_in[1+2*i]]
     new_map = plot_uncertainty_ellipse(new_map, FIMs_first_run[i], target_i, 2.48, 1, "grey", "analytical")
     #new_map = plot_uncertainty_ellipse(new_map, FIMs_random[i], target_i, 2.48, 1, "blue", "numerical")
+    
+    # Compute the stats
+    Cov_Mat, a, b, sx, sy, area_first = uncertainty_ellipse_stats(FIMs_first_run[i], target, 2.48, 1)
+    FIM_area_first.append(area_first)
+    maj_axis_first.append(a)
+
     if num_runs == 2:
         new_map = plot_uncertainty_ellipse(new_map, FIMs_sec_run[i], target_i, 2.48, 1, "black", "analytical")
+        Cov_Mat, a, b, sx, sy, area_second = uncertainty_ellipse_stats(FIMs_sec_run[i], target, 2.48, 1)
+        FIM_area_second.append(area_second)
+        maj_axis_second.append(a)
 
 # Add some text to the plot to show initial vs final placed sensors
 for i in range(len(first_run_positions)//2):
@@ -310,8 +326,14 @@ if num_runs == 2:
         plt.plot(second_run_positions[0+2*i], second_run_positions[1+2*i], marker='x')
         plt.text(second_run_positions[0+2*i]+1, second_run_positions[1+2*i]+1, "Sec")
 
+# Uncomment below for random placement
 #for i in range(len(rand_positions)//2):
 #        plt.text(rand_positions[0+2*i]+1, rand_positions[1+2*i]+1, "Rnd")
 
+print("Mean uncertainty ellipse area: First placement ", np.mean(FIM_area_first))
+print("Mean uncertainty ellipse area: Second placement ", np.mean(FIM_area_second))
+
+print("Largest axis: First placement ", np.max(maj_axis_first))
+print("Largest axis: Second placement ", np.max(maj_axis_second))
 
 plt.show()
