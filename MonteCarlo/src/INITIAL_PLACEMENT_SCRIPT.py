@@ -207,6 +207,10 @@ for i in range(2): # set to one if doing single-step. Two otherwise
         #res = optimize.differential_evolution(objective_fcn, bounds=bounds, args=sensor_list, strategy='best1bin', maxiter=max_iters)
         res = optimize.dual_annealing(objective_fcn, bounds=bounds, args=sensor_list, maxfun=max_iters)
         
+        # differential_evolution works like, suprisingly well. It just takes a while
+        # sim annealing is OK and takes a while - not that much better than DIRECT, which is ~10x faster
+            # Note: with sim annealing, though, you gotta ignore the eps-constrained penalty. It doesn't work with that for some reason?
+        
         if i == 0:
             ax_opt.plot(fcn_counter, fcn_eval_list, linestyle='None', marker='+')
         elif i == 1:
