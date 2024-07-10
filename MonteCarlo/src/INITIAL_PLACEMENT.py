@@ -1,5 +1,6 @@
 from helper_calculations.landscape import Configuration, Node
 from helper_calculations.sensors import Sensor
+from helper_calculations.utils import get_csv_size
 import numpy as np
 import pprint as pp
 import os
@@ -24,10 +25,12 @@ CASE = 1
 SUBCASE = 2 #1 = sequential, 2 = complete (ex, optimize all sensors at once)
 w = 0.999 # Weighting towards coverage vs localization
 # TERRAIN INPUTS
-terrain_height = 100 #796
-terrain_width = 100 #1002
-terrain = Configuration(terrain_width, terrain_height)
-my_path = Path(__file__).parent / "../data/terrain/GIS_terrain_resize.csv"
+
+my_path = Path(__file__).parent / "../data/terrain/GIS_terrain_100_100.csv"
+rows, cols = get_csv_size(my_path)
+terrain_width = cols
+terrain_height = rows
+terrain = Configuration(cols, rows)
 terrain.load_from_csv(my_path)
 
 # OPTIMIZER PARAMETERS
