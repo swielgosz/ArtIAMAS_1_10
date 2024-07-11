@@ -43,12 +43,23 @@ threshold = 8 #minimum distance a sensor must be from a target
     # NOTE: THIS IS ENFORCED IN FISHER_INFORMATION.PY -> BUILD_FIM()!!!
     # GO THERE TO CHANGE THE PARAMETER
 d_sens_min = 4 #minimum sensor-sensor distance
-maxfun_1 = 50000 #Max fun w/o LOS
-max_iters = 20000
 printer_counts = 1000 #print the results every ___ fcn calls
-# Use list to run a parameter sweep
+
+# DIRECT Parameters
 vol_tol = 1e-30
-# vol_tol = [1e-14] #optimization param
+max_iters = 25000
+maxfun_1 = 50000
+
+# DE Parameters - optimized!
+popsize = 7
+mutation = 0.8
+recombination = 0.8
+
+# Sim Annealing Params
+initial_temp = 3000
+restart_temp_ratio = 2e-5
+visit = 2.75
+
 # ------------------------------------------
 
 # ----------INITIAL PLACEMENT---------------
@@ -180,6 +191,7 @@ target_mesh_pts = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40
 
 # Define the list of optimizers being tested
 optimizers = ['DIRECT', 'DE', 'SA']
+
 optimized_vals = []
 
 # Run the multi-objective placements!
@@ -211,11 +223,13 @@ for i in range(1): # set to one if doing single-step. Two otherwise
         if optimizer == 'DIRECT':
             res = optimize.direct(objective_fcn, bounds=bounds, args = sensor_list, vol_tol=vol_tol, maxfun = maxfun_1, maxiter = max_iters)
         elif optimizer == 'DE':
-            res = optimize.differential_evolution(objective_fcn, bounds=bounds, args=sensor_list, strategy='best1bin', maxiter=max_iters)
+            res = optimize.differential_evolution(objective_fcn, bounds=bounds, args=sensor_list, strategy='best1bin', 
+                                                  popsize=popsize, tol=0.01, mutation=mutation, recombination=recombination, maxiter=max_iters)
         elif optimizer == 'SA':
-            res = optimize.dual_annealing(objective_fcn, bounds=bounds, args=sensor_list, maxfun=max_iters, no_local_search=True)
+            res = optimize.dual_annealing(objective_fcn, bounds=bounds, args=sensor_list, maxfun=max_iters, maxiter=20000, no_local_search=True, 
+                                          initial_temp=initial_temp, restart_temp_ratio=restart_temp_ratio, visit=visit, accept = -0.01)
         
-        print("Complete optimizing under", optimizer)
+        print("Complete optimizing under", optimizer, "with value and iterations", res.fun, counter)
         print(res.message)
         print("First optimizer final values:", res.x)
         
@@ -267,20 +281,29 @@ _map = make_basic_seismic_map(num_sensors, sensor_rad, sensor_type, meas_type, s
 ax = terrain.plot_grid(_map)
 new_map = add_targets(ax, targets_in)
 
-for optimizer in optimizers:
+for j, optimizer in enumerate(optimizers):
+    sensor_list = optimized_vals[j]
+    inputs = target_localized_successfully, targets_in, sensor_list, sensor_rad, meas_type, terrain, 0 #LOS_flag == 1
+    (FIMs_stats, det_sum) = build_map_FIMS(inputs)
+    FIM_areas, maj_axis= [], []
+
     for i in range(len(targets_in)//2):
-        FIM_areas, maj_axis= [], []
         target_i = [targets_in[0+2*i], targets_in[1+2*i]]
-        new_map = plot_uncertainty_ellipse(new_map, FIMs_first_run[i], target_i, 2.48, 1, "grey", "analytical")
+        new_map = plot_uncertainty_ellipse(new_map, FIMs_stats[i], target_i, 2.48, 1, "grey", "analytical")
         #new_map = plot_uncertainty_ellipse(new_map, FIMs_random[i], target_i, 2.48, 1, "blue", "numerical")
         
         # Compute the stats
-        Cov_Mat, a, b, sx, sy, area_first = uncertainty_ellipse_stats(FIMs_first_run[i], target, 2.48, 1)
+        Cov_Mat, a, b, sx, sy, area_first = uncertainty_ellipse_stats(FIMs_stats[i], target, 2.48, 1)
         FIM_areas.append(area_first)
         maj_axis.append(a)
 
-        print(optimizer, " mean area:", np.mean(FIM_areas))
-        print(optimizer, " largest axis", np.max(maj_axis))
+    print(optimizer, " mean area:", np.mean(FIM_areas))
+    print(optimizer, " largest axis", np.max(maj_axis))
 
+# Add to plot
+for j, optimizer in enumerate(optimizers):
+    for i in range(len(optimized_vals[j])//2):
+            plt.plot(optimized_vals[j][0+2*i], optimized_vals[j][1+2*i], marker='x')
+            plt.text(optimized_vals[j][0+2*i]+1, optimized_vals[j][1+2*i]+1, optimizer)
 
 plt.show()
