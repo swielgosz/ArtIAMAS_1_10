@@ -57,7 +57,7 @@ recombination = 0.8
 
 # Sim Annealing Params
 initial_temp = 3000
-restart_temp_ratio = 2e-5
+restart_temp_ratio = 0.001
 visit = 2.75
 
 # ------------------------------------------
@@ -162,6 +162,8 @@ def objective_fcn(x, *args):
         prev_opt = tr_sum # CHANGE THIS TO MATCH STEP 1
         epsilon = 0.75
         eps_opt_penalty = obj_penalty(prev_opt, epsilon*obj_constraint)
+
+    optimizer_var = optimizer_var*eps_opt_penalty
     
     #optimizer_var = optimizer_var * eps_opt_penalty
     if optimizer_var > best_fcn:
@@ -196,11 +198,14 @@ optimized_vals = []
 
 # Run the multi-objective placements!
 # To pick what's being optimized first, change it around in the objective fcn
-for i in range(1): # set to one if doing single-step. Two otherwise
+for i in range(2): # set to one if doing single-step. Two otherwise
     # Generate figs and plots
     fig = plt.figure()
     ax_opt = fig.add_subplot()
     step_num = i+1
+
+    if step_num == 2: #overwrite the prev optimized vals if two-step
+        optimized_vals = []
 
     if i == 0: # first pass, set constraint to zero
         obj_constraint = 0 
