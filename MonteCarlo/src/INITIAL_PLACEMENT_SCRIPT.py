@@ -48,7 +48,7 @@ printer_counts = 1000 #print the results every ___ fcn calls
 # DIRECT Parameters
 vol_tol = 1e-30
 max_iters = 15000
-maxfun_1 = 50000
+maxfun_1 = 15000
 
 # DE Parameters - optimized!
 popsize = 7
@@ -57,7 +57,7 @@ recombination = 0.8
 
 # Sim Annealing Params
 initial_temp = 3000
-restart_temp_ratio = 0.001
+restart_temp_ratio = 0.00075
 visit = 2.75
 
 # ------------------------------------------
@@ -192,6 +192,7 @@ def objective_fcn(x, *args):
 target_mesh_pts = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
 
 # Define the list of optimizers being tested
+# options are (exactly): 'DIRECT', 'DE', 'SA'
 optimizers = ['DIRECT', 'DE', 'SA']
 
 optimized_vals = []
@@ -229,7 +230,7 @@ for i in range(2): # set to one if doing single-step. Two otherwise
             res = optimize.direct(objective_fcn, bounds=bounds, args = sensor_list, vol_tol=vol_tol, maxfun = maxfun_1, maxiter = max_iters)
         elif optimizer == 'DE':
             res = optimize.differential_evolution(objective_fcn, bounds=bounds, args=sensor_list, strategy='best1bin', 
-                                                  popsize=popsize, tol=0.01, mutation=mutation, recombination=recombination, maxiter=max_iters)
+                                                  popsize=popsize, tol=0.005, mutation=mutation, recombination=recombination, maxiter=max_iters)
         elif optimizer == 'SA':
             res = optimize.dual_annealing(objective_fcn, bounds=bounds, args=sensor_list, maxfun=max_iters, maxiter=20000, no_local_search=True, 
                                           initial_temp=initial_temp, restart_temp_ratio=restart_temp_ratio, visit=visit, accept = -0.01)
@@ -286,6 +287,9 @@ _map = make_basic_seismic_map(num_sensors, sensor_rad, sensor_type, meas_type, s
 ax = terrain.plot_grid(_map)
 new_map = add_targets(ax, targets_in)
 
+# Set colors for optimizer. Must be the same length as number of optimizers
+colors = ["grey", "blue", "red"]
+
 for j, optimizer in enumerate(optimizers):
     sensor_list = optimized_vals[j]
     inputs = target_localized_successfully, targets_in, sensor_list, sensor_rad, meas_type, terrain, 0 #LOS_flag == 1
@@ -294,7 +298,7 @@ for j, optimizer in enumerate(optimizers):
 
     for i in range(len(targets_in)//2):
         target_i = [targets_in[0+2*i], targets_in[1+2*i]]
-        new_map = plot_uncertainty_ellipse(new_map, FIMs_stats[i], target_i, 2.48, 1, "grey", "analytical")
+        new_map = plot_uncertainty_ellipse(new_map, FIMs_stats[i], target_i, 2.48, 1, colors[j], "analytical")
         #new_map = plot_uncertainty_ellipse(new_map, FIMs_random[i], target_i, 2.48, 1, "blue", "numerical")
         
         # Compute the stats
@@ -308,7 +312,7 @@ for j, optimizer in enumerate(optimizers):
 # Add to plot
 for j, optimizer in enumerate(optimizers):
     for i in range(len(optimized_vals[j])//2):
-            plt.plot(optimized_vals[j][0+2*i], optimized_vals[j][1+2*i], marker='x')
+            plt.plot(optimized_vals[j][0+2*i], optimized_vals[j][1+2*i], marker='x', color = colors[j])
             plt.text(optimized_vals[j][0+2*i]+1, optimized_vals[j][1+2*i]+1, optimizer)
 
 plt.show()
