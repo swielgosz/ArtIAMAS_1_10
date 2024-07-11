@@ -110,7 +110,7 @@ def objective_fcn(x, *args):
     # NOTE: penalties are applied to individual FIMS - see the build_map_FIMS for details!!!!!
     for kk in range(len(FIMs)):
         # FIM correspond to target list one-to-one
-        det_mult = det_mult*np.linalg.det(FIMs[kk])
+        det_mult = det_mult + np.linalg.det(FIMs[kk])
         tr_sum += np.trace(FIMs[kk])
         #eig_abs_sum += np.max(np.linalg.eigvals(FIMs[kk]))
 
@@ -160,7 +160,7 @@ def objective_fcn(x, *args):
     elif step_num == 2:
         optimizer_var = det_mult # CHANGE THIS
         prev_opt = tr_sum # CHANGE THIS TO MATCH STEP 1
-        epsilon = 0.75
+        epsilon = 0.95
         eps_opt_penalty = obj_penalty(prev_opt, epsilon*obj_constraint)
 
     optimizer_var = optimizer_var*eps_opt_penalty
