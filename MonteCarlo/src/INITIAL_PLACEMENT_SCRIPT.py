@@ -57,7 +57,7 @@ recombination = 0.8
 
 # Sim Annealing Params
 initial_temp = 3000
-restart_temp_ratio = 0.00075
+restart_temp_ratio = 0.0005
 visit = 2.75
 
 # ------------------------------------------
@@ -237,19 +237,21 @@ for i in range(2): # set to one if doing single-step. Two otherwise
         
         print("Complete optimizing under", optimizer, "with value and iterations", res.fun, counter)
         print(res.message)
-        print("First optimizer final values:", res.x)
+        #print("First optimizer final values:", res.x)
         
+        # Now try fine tuning by optimizing locally
+        x_out = res.x #save off prev results to start fine-tuning
+        res = optimize.minimize(objective_fcn, x_out, args = sensor_list, method='BFGS', jac='3-point', options={'gtol': 0.005})
+        obj_constraint = -1.0*res.fun
+        print("Complete fine optimizing under", optimizer, "with value and iterations", res.fun, counter)
+
         # Format the plots
         ax_opt.plot(fcn_counter, fcn_eval_list, linestyle='None', marker='+', label = optimizer)
 
+        # Save off optimized vals
         optimized_vals.append(res.x)
         x_out = res.x
-
-        # Now try fine tuning by optimizing locally!
-        #res = optimize.minimize(objective_fcn, x_out, args = sensor_list, method='BFGS', jac='3-point')
-        #x_out = res.x
-        obj_constraint = -1.0*res.fun
-        #print(res.message, "Fine final values:", res.x)
+    # End for optimizer ... loop
 
     # Save the number of runs we did for later
     num_runs = i+1
