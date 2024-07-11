@@ -47,7 +47,7 @@ printer_counts = 1000 #print the results every ___ fcn calls
 
 # DIRECT Parameters
 vol_tol = 1e-30
-max_iters = 25000
+max_iters = 15000
 maxfun_1 = 50000
 
 # DE Parameters - optimized!

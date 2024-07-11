@@ -128,7 +128,7 @@ def WSN_penalty(sensors, comm_radii):
 
     # Just something large
     min_dist = 1000
-    mu = 5
+    mu = 10
 
     # find the smallest value that violates the constraint
     for i, sensor_i in enumerate(sensors_list):
