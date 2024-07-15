@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 import numpy as np
 import pprint as pp
-
+import random
 
 # JM - added decay to get_node_seismic_score() 
     # and get_node_acoustic_score() to Configuration class
@@ -17,7 +18,7 @@ K = 10000
 # Classes:
 # 1: water
 # 2: road
-#3: low vegetation
+# 3: low vegetation
 # 4: High vegetation
 # 5: Man-made objects
 
@@ -27,7 +28,8 @@ class Water:
         # self.color = (10, 62, 235)
         self.color = (0, 0, 232)
         self.land_type = 'water'
-        self.is_sensor_valid = False 
+        self.is_sensor_valid = False
+        self.potential_targets = [] 
 
 # Land class
 class Land: 
@@ -38,6 +40,7 @@ class Land:
         self.color =(186, 239, 152)
         self.land_type = 'land'
         self.is_sensor_valid = True
+        self.potential_targets = []
 
 # Road class
 class Road:
@@ -46,6 +49,7 @@ class Road:
         self.color = (128, 64, 128)
         self.land_type = 'road'
         self.is_sensor_valid = False
+        self.potential_targets = []
 
 # Manmade class
 class Manmade:
@@ -55,6 +59,7 @@ class Manmade:
         self.color = (168, 19, 10)
         self.land_type = 'manmade'
         self.is_sensor_valid = False
+        self.potential_targets = []
 
 # Node class
 class Node:
@@ -69,6 +74,8 @@ class Node:
         self.sensor_type = None # acoustic or seismic
         self.sensor_mode = None # radius or bearing
         self.sensor_radius = 0
+        self.has_target = False  # target on gridpoint or not
+        self.num_targets = 0 # number of targets at gridpoint
 
 
 class Configuration:
@@ -99,7 +106,7 @@ class Configuration:
     # Load terrain file from csv
     def load_from_csv(self, filepath):
         
-        # Read in numberic data (where each number in the csv file correlates to a terrain type)
+        # Read in numeric data (where each number in the csv file correlates to a terrain type)
         with open(filepath, 'r') as f:
             lines = f.readlines()
             for i in range(len(lines)):
@@ -198,10 +205,10 @@ class Configuration:
                 # Plotting sensor communication radius
                 #circle3 = plt.Circle((item["i"], item["j"]), item["sensor_comm_radius"], color = sensor_color,linestyle='--', linewidth = 0.5,fill=False)
                 #ax.add_patch(circle3)
-        
+        plt.show() 
         return ax
 
-        # plt.show()    
+        plt.show()    
 
     # Save plots. This is basically the same as plot_grid. Not efficient
     def save_history(self, history,dirpath):
@@ -250,6 +257,44 @@ class Configuration:
 
             c += 1
 
+    def plot_grid_with_targets(self,area_origins, area_dims):
+        
+    # Create a color map for the terrain
+        data = np.zeros((self.height, self.width, 3), dtype=int)
+
+        for i in range(self.height):
+            for j in range(self.width):
+                # Assign colors based on land type
+                land_type = self.grid[i][j].land_type.land_type
+                if land_type == "land":
+                    data[i][j] = self.grid[i][j].land_type.color
+                elif land_type == "water":
+                    data[i][j] = (0, 0, 232)
+                elif land_type == "road":
+                    data[i][j] = (128, 64, 128)
+                elif land_type == "manmade":
+                    data[i][j] = (168, 19, 10)
+
+        # Plot the terrain
+        plt.figure(figsize=(5, 5))
+        plt.imshow(data)
+    
+        # Plot rectangles where we place targets
+        for (origin, dim) in zip(area_origins, area_dims):
+            rect = Rectangle((origin[1], origin[0]), dim[1], dim[0], linewidth=2, edgecolor='red', facecolor='none')
+            plt.gca().add_patch(rect)
+
+            # Plot target counts within the rectangle
+            for i in range(origin[0], origin[0] + dim[0]):
+                for j in range(origin[1], origin[1] + dim[1]):
+                    num_targets = self.grid[i][j].num_targets
+                    plt.text(j, i, str(num_targets), ha='center', va='center', color='white', fontsize=8)
+
+        plt.title('Terrain with Target Counts')
+        plt.xlabel('X Coordinate')
+        plt.ylabel('Y Coordinate')
+        plt.grid(True)
+        plt.show()
 
     # Assign acoustic sensor component of "coverage score" (defined in project PPT)
     # JM - add "gaussian" ability here
@@ -326,6 +371,21 @@ class Configuration:
             return 2
         elif n.land_type.land_type == "manmade":
             return 2.5
+
+    def get_target_density(self, i, j):
+        n = self.grid[i][j]
+
+        if n.land_type.land_type == "water":
+            return 0
+        elif n.land_type.land_type == "land":
+            if n.veg_level < 0.5:
+                return 1
+            elif n.veg_level > 0.5:
+                return 0
+        elif n.land_type.land_type == "road":
+            return 2
+        elif n.land_type.land_type == "manmade":
+            return 3
         
     # Commented this out because we want to remove the sensor weighting factor
     # # Calculate cost (configuration profit in PPT) of configuration. We want to maximize the cost, i.e. maximize information known about the environment
@@ -345,7 +405,7 @@ class Configuration:
     #             # Check which sensors each grid point is detected by, and assign "coverage score" accordingly
     #             for sensor in s_map:
     #                 # JM - will reuse the distance calculation for gaussian decay
-    #                 dist = np.sqrt((i - sensor["i"])**2 + (j - sensor["j"])**2)
+    # dist = np.sqrt((i - sensor["i"])**2 + (j - sensor["j"])**2)
     #                 if  dist <= sensor["sensor_radius"]:
 
     #                     if sensor["sensor_type"] == "acoustic" and n_acoustic == 0:
@@ -472,7 +532,6 @@ class Configuration:
         return sensor_map
 
     # Check if the sensors in a configuration are connected via a WSN
-    # UPDATE THIS for 2 way communication
     def is_configuration_valid(self, s_map=None):
         #Inits
         WSN = False
@@ -482,7 +541,7 @@ class Configuration:
 
         graph = {}
 
-        # For each sensor, record which sensors are within communication radius
+        # For each sensor, record which sensors are within communication radius (check for two-way communication here)
         for i in range(len(s_map)):
             curr_node_connections = []
             for j in range(len(s_map)):
@@ -512,7 +571,7 @@ class Configuration:
         if len(visited) == len(s_map):
             WSN = True
 
-        return WSN
+        return WSN        
 
 if __name__ == '__main__':
     landscape = Configuration(100, 100)
