@@ -21,7 +21,7 @@ def min_distance_penalty(target, sensor, d_min):
     ACCEPTS: target (2x1 list of floats), sensor (2x1 list floats), d_min (scalar of minimum distnace)
     RETURNS: penalty scalar
     '''
-    mu = 10. # parameter in the sigmoid fcn
+    mu = 8. # parameter in the sigmoid fcn
     tx, ty = target[0], target[1]
     
     # Loop over each sensor and add the penalty
@@ -128,7 +128,7 @@ def WSN_penalty(sensors, comm_radii):
 
     # Just something large
     min_dist = 1000
-    mu = 5
+    mu = 8
 
     # find the smallest value that violates the constraint
     for i, sensor_i in enumerate(sensors_list):
