@@ -10,7 +10,6 @@ from scipy import optimize
 import time
 from helper_calculations.make_map import make_basic_seismic_map
 import matplotlib.pyplot as plt
-from helper_calculations.make_target_map import add_targets, add_target_mesh 
 from helper_calculations.sensor_vision import sensor_vision, sensor_reading, target_localization_both, target_localization_bearing, target_localization_radius
 from helper_calculations.fisher_information import build_FIM, build_map_FIMS, plot_uncertainty_ellipse
 from helper_calculations.localization_calculations import sensor_localization_routine
