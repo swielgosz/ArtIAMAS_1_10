@@ -16,6 +16,8 @@ from helper_calculations.fisher_information import build_FIM, build_map_FIMS, pl
 from helper_calculations.localization_calculations import sensor_localization_routine
 from helper_calculations.sensor_vision import get_LOS_coeff
 from helper_calculations.penalty_fcn import min_distance_penalty, min_sensor_distance_penalty, valid_sensor_penalty
+from helper_calculations.target_meshing import make_target_mesh
+# from helper_calculation.target_mesh import make_target_mesh
 
 # -------- DESCRIPTION -----------------
 # This script plots the objective function on a contour
@@ -41,7 +43,14 @@ sensor_locs = [40.69553033, 50.49727325, 50.22817631, 40.1569826,  44.11675794, 
 
 # TARGETS
 # Define the target mesh here!
-target_mesh_pts = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
+num_areas = 2
+area_origin = [[40,40],[30,50]] # can add additional origins if using multiple rectangles
+area_dim = [[10,20],[5,7]] # same as above
+target_mesh_pts = []
+
+for i in range(num_areas):
+    target_mesh_pts = make_target_mesh(target_mesh_pts,terrain,area_origin[i-1], area_dim[i-1])
+# target_mesh_pts = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
 
 # take out of mesh
 targets = []
