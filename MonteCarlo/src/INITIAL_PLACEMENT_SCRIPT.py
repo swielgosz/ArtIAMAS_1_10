@@ -16,6 +16,8 @@ from helper_calculations.fisher_information import build_FIM, build_map_FIMS, pl
 from helper_calculations.localization_calculations import sensor_localization_routine
 from helper_calculations.sensor_vision import get_LOS_coeff
 from helper_calculations.penalty_fcn import min_distance_penalty, min_sensor_distance_penalty, valid_sensor_penalty, WSN_penalty
+from helper_calculations.save_vals import save_data
+from helper_calculations.target_meshing import make_target_mesh
 
 # -------- DESCRIPTION -----------------
 # This script was makes an INITIAL PLACEMENT
@@ -188,8 +190,22 @@ def objective_fcn(x, *args):
         return 0
 
 # ---------RUN THE OPTIMIZER-------------------
+# Initialize to save off data later as a csv
+data_save_off = []
+data_name_list = []
+
 # Generate target mesh here!
-target_mesh_pts = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
+#target_mesh_pts = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
+
+# Define rectangular areas to place targets in
+num_areas = 2
+area_origin = [[40,40],[30,50]] # can add additional origins if using multiple rectangles
+area_dim = [[6,8],[3,5]] # same as above
+target_mesh_points = []
+
+# Place targets
+for i in range(num_areas):
+    target_mesh_pts = make_target_mesh(target_mesh_points,terrain,area_origin[i-1], area_dim[i-1])
 
 # Define the list of optimizers being tested
 # options are (exactly): 'DIRECT', 'DE', 'SA'
@@ -228,12 +244,15 @@ for i in range(2): # set to one if doing single-step. Two otherwise
 
         if optimizer == 'DIRECT':
             res = optimize.direct(objective_fcn, bounds=bounds, args = sensor_list, vol_tol=vol_tol, maxfun = maxfun_1, maxiter = max_iters)
+            data_name_list.append("DIRECT Optimizer curve")
         elif optimizer == 'DE':
             res = optimize.differential_evolution(objective_fcn, bounds=bounds, args=sensor_list, strategy='best1bin', 
                                                   popsize=popsize, tol=0.005, mutation=mutation, recombination=recombination, maxiter=max_iters)
+            data_name_list.append("Diff Ev Optimizer curve")
         elif optimizer == 'SA':
-            res = optimize.dual_annealing(objective_fcn, bounds=bounds, args=sensor_list, maxfun=max_iters, maxiter=20000, no_local_search=True, 
+            res = optimize.dual_annealing(objective_fcn, bounds=bounds, args=sensor_list, maxfun=maxfun_1, maxiter=max_iters, no_local_search=True, 
                                           initial_temp=initial_temp, restart_temp_ratio=restart_temp_ratio, visit=visit, accept = -0.01)
+            data_name_list.append("Sim Anneal Optimizer curve")
         
         print("Complete optimizing under", optimizer, "with value and iterations", res.fun, counter)
         print(res.message)
@@ -251,6 +270,11 @@ for i in range(2): # set to one if doing single-step. Two otherwise
         # Save off optimized vals
         optimized_vals.append(res.x)
         x_out = res.x
+        
+        data_save_off.append(fcn_eval_list)
+        data_save_off.append(fcn_counter)
+        data_name_list.append("steps in solve")
+    
     # End for optimizer ... loop
 
     # Save the number of runs we did for later
@@ -262,6 +286,9 @@ ax_opt.set_ylabel('Objective Function Evaluations'), ax_opt.set_xlabel('Iteratio
 ax_opt.grid(True, which='minor')  
 plt.legend()
 plt.show()
+
+# Save data off
+save_data(data_save_off, data_name_list, "Init_place_opt_evals", "Initial Placement Optimization Runs")
 
 print('-----------------------------------')
 # ---------FORMAT AND ANALYSIS------------------
@@ -285,12 +312,18 @@ print('-----------------------------------')
 # Comment out the random ones if we don't want to visualize them! 
 # It's not always necessary because the ellipses can get unecessarily large
 
+sensor_save_data, sensor_save_names = [], []
+FIM_save_data, FIM_save_names = [], []
+
 _map = make_basic_seismic_map(num_sensors, sensor_rad, sensor_type, meas_type, sensor_comm_ratio, x_out)
 ax = terrain.plot_grid(_map)
 new_map = add_targets(ax, targets_in)
 
 # Set colors for optimizer. Must be the same length as number of optimizers
 colors = ["grey", "blue", "red"]
+
+FIM_save_data.append(targets_in)
+FIM_save_names.append("targets calculated")
 
 for j, optimizer in enumerate(optimizers):
     sensor_list = optimized_vals[j]
@@ -310,6 +343,19 @@ for j, optimizer in enumerate(optimizers):
 
     print(optimizer, " mean area:", np.mean(FIM_areas))
     print(optimizer, " largest axis", np.max(maj_axis))
+
+    # Save off data!
+    sensor_save_data.append(sensor_list)
+    sensor_save_names.append(optimizer)
+
+    FIM_save_data.append(FIM_areas)
+    FIM_save_data.append(maj_axis)
+    FIM_save_names.append(optimizer+" mean area")
+    FIM_save_names.append(optimizer+" largest axis")
+
+# Save off data!
+save_data(sensor_save_data, sensor_save_names, "init_sensor_placements", "Initial sensor placement results for differnet optimizers")
+save_data(FIM_save_data, FIM_save_names, "init_fim_characteristics", "Initial sensor placement FIM characteristics")
 
 # Add to plot
 for j, optimizer in enumerate(optimizers):
