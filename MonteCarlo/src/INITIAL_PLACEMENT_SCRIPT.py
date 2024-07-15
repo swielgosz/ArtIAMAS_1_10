@@ -200,7 +200,7 @@ data_name_list = []
 # Define rectangular areas to place targets in
 num_areas = 2
 area_origin = [[40,40],[30,50]] # can add additional origins if using multiple rectangles
-area_dim = [[6,8],[3,5]] # same as above
+area_dim = [[5,7],[3,5]] # same as above
 target_mesh_points = []
 
 # Place targets
@@ -280,15 +280,14 @@ for i in range(2): # set to one if doing single-step. Two otherwise
     # Save the number of runs we did for later
     num_runs = i+1
 
+# Save data off
+
 # Plot formatting
 ax_opt.set_ylabel('Objective Function Evaluations'), ax_opt.set_xlabel('Iteration Count')
 #ax_opt.set_ylim([min(fcn_eval_list)*1.25, max(fcn_eval_list)*1.25])
 ax_opt.grid(True, which='minor')  
 plt.legend()
 plt.show()
-
-# Save data off
-save_data(data_save_off, data_name_list, "Init_place_opt_evals", "Initial Placement Optimization Runs")
 
 print('-----------------------------------')
 # ---------FORMAT AND ANALYSIS------------------
@@ -353,14 +352,16 @@ for j, optimizer in enumerate(optimizers):
     FIM_save_names.append(optimizer+" mean area")
     FIM_save_names.append(optimizer+" largest axis")
 
-# Save off data!
-save_data(sensor_save_data, sensor_save_names, "init_sensor_placements", "Initial sensor placement results for differnet optimizers")
-save_data(FIM_save_data, FIM_save_names, "init_fim_characteristics", "Initial sensor placement FIM characteristics")
 
 # Add to plot
 for j, optimizer in enumerate(optimizers):
     for i in range(len(optimized_vals[j])//2):
-            plt.plot(optimized_vals[j][0+2*i], optimized_vals[j][1+2*i], marker='x', color = colors[j])
-            plt.text(optimized_vals[j][0+2*i]+1, optimized_vals[j][1+2*i]+1, optimizer)
+            ax.plot(optimized_vals[j][0+2*i], optimized_vals[j][1+2*i], marker='x', color = colors[j])
+            ax.text(optimized_vals[j][0+2*i]+1, optimized_vals[j][1+2*i]+1, optimizer)
+
+# Save off data!
+save_data(sensor_save_data, sensor_save_names, "init_sensor_placements", "Initial sensor placement results for differnet optimizers")
+save_data(FIM_save_data, FIM_save_names, "init_fim_characteristics", "Initial sensor placement FIM characteristics")
+save_data(data_save_off, data_name_list, "Init_place_opt_evals", "Initial Placement Optimization Runs")
 
 plt.show()

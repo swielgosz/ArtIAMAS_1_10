@@ -205,10 +205,10 @@ class Configuration:
                 # Plotting sensor communication radius
                 #circle3 = plt.Circle((item["i"], item["j"]), item["sensor_comm_radius"], color = sensor_color,linestyle='--', linewidth = 0.5,fill=False)
                 #ax.add_patch(circle3)
-        plt.show() 
+        #plt.show() 
         return ax
 
-        plt.show()    
+        #plt.show()    
 
     # Save plots. This is basically the same as plot_grid. Not efficient
     def save_history(self, history,dirpath):
