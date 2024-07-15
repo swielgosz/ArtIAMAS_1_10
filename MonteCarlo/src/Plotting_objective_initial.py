@@ -39,13 +39,13 @@ num_sensors = len(sensor_type)
 sensor_comm_ratio = 0.4 # ratio of sensor communication to sensing radius 
 meas_type = ["radius", "bearing", "radius", "bearing"] #radius or bearing
 LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
-sensor_locs = [40.69553033, 50.49727325, 50.22817631, 40.1569826,  44.11675794, 55.97531727, 49.70569476, 59.18030557]
+sensor_locs = [50.31485115, 51.67756362, 50.07597588, 36.29763689, 52.43856565, 42.35051105,42.62909842, 54.5       ]
 
 # TARGETS
-# Define the target mesh here!
+# Define rectangular areas to place targets in
 num_areas = 2
 area_origin = [[40,40],[30,50]] # can add additional origins if using multiple rectangles
-area_dim = [[10,20],[5,7]] # same as above
+area_dim = [[5,7],[3,5]] # same as above
 target_mesh_pts = []
 
 for i in range(num_areas):
@@ -78,7 +78,7 @@ for i in range(terrain_height):
         target_input = [i, j]
         inputs = target_localized_successfully, target_input, sensor_locs, sensor_rad, meas_type, terrain, 0 #LOS_flag == 1
         (FIM_target, det_sum) = build_map_FIMS(inputs)
-        # j, i flip compensates for backwardness of our set-up
+        # j, i flip compensates for backwardness of our set-up (I think?)
         objective[j, i] = np.trace(FIM_target[0]) #np.linalg.det(FIM_target[0])
 
 
@@ -94,9 +94,7 @@ for i in range(len(targets)//2):
     tar_x.append(tx)
     tar_y.append(ty)
 
-print(tar_x, tar_y)
 ax.scatter(tar_x, tar_y, marker = "^", color = "r")
-print
 
 # Finally plot the sensor positions
 for i in range(len(sensor_locs)//2):

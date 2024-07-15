@@ -355,6 +355,7 @@ for j, optimizer in enumerate(optimizers):
 
 # Add to plot
 for j, optimizer in enumerate(optimizers):
+    print(optimizer, optimized_vals[j])
     for i in range(len(optimized_vals[j])//2):
             ax.plot(optimized_vals[j][0+2*i], optimized_vals[j][1+2*i], marker='x', color = colors[j])
             ax.text(optimized_vals[j][0+2*i]+1, optimized_vals[j][1+2*i]+1, optimizer)
