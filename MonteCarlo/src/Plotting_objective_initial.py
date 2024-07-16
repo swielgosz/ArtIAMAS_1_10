@@ -39,13 +39,12 @@ num_sensors = len(sensor_type)
 sensor_comm_ratio = 0.4 # ratio of sensor communication to sensing radius 
 meas_type = ["radius", "bearing", "radius", "bearing"] #radius or bearing
 LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
-sensor_locs = [50.31485115, 51.67756362, 50.07597588, 36.29763689, 52.43856565, 42.35051105,42.62909842, 54.5       ]
+sensor_locs = [45.78988784, 54.55329918, 37.5058387,  48.85222049, 55.02321267, 47.04234125, 37.60130004, 38.91670999]
 
-# TARGETS
 # Define rectangular areas to place targets in
-num_areas = 2
-area_origin = [[40,40],[30,50]] # can add additional origins if using multiple rectangles
-area_dim = [[5,7],[3,5]] # same as above
+num_areas = 3
+area_origin = [[44, 42], [54, 32], [34, 30]] # can add additional origins if using multiple rectangles
+area_dim = [[6,6], [8, 10], [4,4]] # same as above
 target_mesh_pts = []
 
 for i in range(num_areas):

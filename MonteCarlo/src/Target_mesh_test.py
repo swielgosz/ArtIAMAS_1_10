@@ -26,13 +26,12 @@ terrain = Configuration(cols, rows) # cols = width, height = rows
 terrain.load_from_csv(my_path)
 
 # Define rectangular areas to place targets in
-num_areas = 2
-area_origin = [[40,40],[30,50]] # can add additional origins if using multiple rectangles
-area_dim = [[10,20],[5,7]] # same as above
+area_origin = [[47, 45], [43, 37], [53, 47], [59, 53]] # can add additional origins if using multiple rectangles
+area_dim = [[6,6], [6,6], [2,2], [2,2]] # same as above
 target_mesh_points = []
 
 # Place targets
-for i in range(num_areas):
+for i in range(len(area_origin)):
     target_mesh_points = make_target_mesh(target_mesh_points,terrain,area_origin[i-1], area_dim[i-1])
 
 # Print locations

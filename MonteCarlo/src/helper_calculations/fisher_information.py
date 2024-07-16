@@ -133,7 +133,7 @@ def build_map_FIMS(inputs):
             trace_sum += np.trace(FIMs[i])
 
     # 2nd term is what we're returning to the objective!
-    return FIMs, trace_sum
+    return FIMs, det_sum
 
 
 def plot_uncertainty_ellipse(_map, FIM, target, confidence, plot_scale, color, solve_type):
