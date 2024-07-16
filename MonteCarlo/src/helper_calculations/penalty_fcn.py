@@ -16,22 +16,23 @@ from .landscape import Configuration, Node
     # DANIELA DE PALMA et al (2024) use a sigmoid to represent this, but we obviously dont have to
 
 # Minimum sensor-target distance (inequality)
-def min_distance_penalty(target, sensor, d_min):
+def min_distance_penalty(targets, sensors, d_min):
     '''
     ACCEPTS: target (2x1 list of floats), sensor (2x1 list floats), d_min (scalar of minimum distnace)
     RETURNS: penalty scalar
     '''
-    mu = 5. # parameter in the sigmoid fcn
-    tx, ty = target[0], target[1]
-    
-    # Loop over each sensor and add the penalty
-
-    # distance computation
-    sx, sy = sensor[0], sensor[1]
-    d_ts = ((tx-sx)**2+(ty-sy)**2)**(1/2)
+    sens_target_min = 100
+    mu = 4. # parameter in the sigmoid fcn
+    for i in range(len(targets)//2):
+        for j in range(len(sensors)//2):
+            tx, ty = targets[0+2*i], targets[1+2*i]
+            sx, sy = sensors[0+2*j], sensors[1+2*j]
+            d_ts = ((tx-sx)**2+(ty-sy)**2)**(1/2)
+            if d_ts < sens_target_min:
+                sens_target_min = d_ts
     
     # Return penalty
-    return 1/(1+np.exp(-mu*(d_ts-d_min)))
+    return 1/(1+np.exp(-mu*(sens_target_min-d_min)))
     
 
 # Minimum sensor-sensor spacing (inequality)
@@ -128,7 +129,7 @@ def WSN_penalty(sensors, comm_radii):
 
     # Just something large
     min_dist = 1000
-    mu = 5
+    mu = 8
 
     # find the smallest value that violates the constraint
     for i, sensor_i in enumerate(sensors_list):

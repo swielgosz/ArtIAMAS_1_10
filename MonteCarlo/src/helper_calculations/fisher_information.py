@@ -42,7 +42,8 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
     for i in range(len(phi)): #phi is one-to-one with sensor. Loops over sensor list effectively
 
         # Get penalty scalars
-        penalty = min_distance_penalty(target, [sensors[0+2*i], sensors[1+2*i]], d_min)
+        # penalty = min_distance_penalty(target, [sensors[0+2*i], sensors[1+2*i]], d_min)
+        penalty = 1 # NOTE: CHANGED TO GLOBALLY SATISFY CONSTRAINT
 
         # Distance-based noise scaling
         eta = 0.01
@@ -132,7 +133,7 @@ def build_map_FIMS(inputs):
             trace_sum += np.trace(FIMs[i])
 
     # 2nd term is what we're returning to the objective!
-    return FIMs, trace_sum
+    return FIMs, det_sum
 
 
 def plot_uncertainty_ellipse(_map, FIM, target, confidence, plot_scale, color, solve_type):
@@ -166,8 +167,9 @@ def plot_uncertainty_ellipse(_map, FIM, target, confidence, plot_scale, color, s
     u=target[0]     #x-position of the center
     v=target[1]     #y-position of the center
     
-    print("ellipse area:", np.pi*a*b,"for target:", target)
-    print("Confid*sx, sy:", sx*plot_scale, sy*plot_scale, "major, minor axes", a, b, "for target:", target )
+    # Uncomment to print stats as necessary
+    # print("ellipse area:", np.pi*a*b,"for target:", target)
+    # print("Confid*sx, sy:", sx*plot_scale, sy*plot_scale, "major, minor axes", a, b, "for target:", target )
 
     # Plot!
     t = np.linspace(0, 2*np.pi, 100)
@@ -181,3 +183,46 @@ def plot_uncertainty_ellipse(_map, FIM, target, confidence, plot_scale, color, s
               color = color, lw = 1.2, linestyle = linestyle)
 
     return _map
+
+
+# fcn for computing the trace and det
+def return_obj_vals(FIMs):
+    det_mult = 1.
+    tr_sum = 0.
+    for kk in range(len(FIMs)):
+        # FIM correspond to target list one-to-one
+        det_mult = det_mult*np.linalg.det(FIMs[kk])
+        tr_sum += np.trace(FIMs[kk])
+    return det_mult, tr_sum
+
+def uncertainty_ellipse_stats(FIM, target, confidence, plot_scale):
+    '''
+    Accepts: FIM cooresponding to ONE target, the target, confid level, plot scale
+    Returns: stats associated with uncertainty ellipse as a tuple
+             Returned tuple: (Cov matrix, a, b, sx, sy, area)
+             a, b - major axes; sx, sy - std devs; area - uncertainty ellipse area at % confid
+    '''
+
+    # Generate the covariance matrix
+    Cov_Mat = np.linalg.inv(FIM)
+
+    sx2 = (Cov_Mat[0,0])*1    #Sigma_x ^2 is the first element
+    sy2 = (Cov_Mat[1,1])*1    #Sigma_y ^2 is the first element
+    sxy = (Cov_Mat[0,1])*1    #Off-diagonal elements
+
+    # Take sqrt to get sigma_x, sigma_y
+    sx = sx2**(1/2)
+    sy = sy2**(1/2)
+
+    # Calculate a^2 and b^2, where a and b are the major axes
+    a2 = (sx**2+sy**2)/2 + (((sx**2-sy**2)**2 )/ 4 + sxy**2)**(1/2)
+    b2 = (sx**2+sy**2)/2 - (((sx**2-sy**2)**2 )/ 4 + sxy**2)**(1/2)
+
+    # Get a and b, mult by the plot scale to correct for using different maps
+    a = a2**(1/2)*plot_scale*1*confidence
+    b = b2**(1/2)*plot_scale*1*confidence
+
+    # Finally, calculate the area
+    area = np.pi*a*b
+
+    return (Cov_Mat, a, b, sx, sy, area)
