@@ -42,7 +42,8 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
     for i in range(len(phi)): #phi is one-to-one with sensor. Loops over sensor list effectively
 
         # Get penalty scalars
-        penalty = min_distance_penalty(target, [sensors[0+2*i], sensors[1+2*i]], d_min)
+        # penalty = min_distance_penalty(target, [sensors[0+2*i], sensors[1+2*i]], d_min)
+        penalty = 1 # NOTE: CHANGED TO GLOBALLY SATISFY CONSTRAINT
 
         # Distance-based noise scaling
         eta = 0.01

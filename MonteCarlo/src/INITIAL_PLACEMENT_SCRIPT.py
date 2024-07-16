@@ -36,16 +36,14 @@ terrain.load_from_csv(my_path)
 sensor_rad = [50, 50, 50, 50]
 sensor_type = ["seismic","acoustic","seismic", "acoustic"]
 num_sensors = len(sensor_type)
-sensor_comm_ratio = 0.4 # ratio of sensor communication to sensing radius 
+sensor_comm_ratio = 0.5 # ratio of sensor communication to sensing radius 
 meas_type = ["radius", "bearing", "radius", "bearing"] #radius or bearing
 LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
 
 # OPTIMIZATION PARAMETERS
-threshold = 8 #minimum distance a sensor must be from a target
-    # NOTE: THIS IS ENFORCED IN FISHER_INFORMATION.PY -> BUILD_FIM()!!!
-    # GO THERE TO CHANGE THE PARAMETER
+threshold = 6 #minimum distance a sensor must be from a target
 d_sens_min = 4 #minimum sensor-sensor distance
-printer_counts = 1000 #print the results every ___ fcn calls
+printer_counts = 50 #print the results every ___ fcn calls
 
 # DIRECT Parameters
 vol_tol = 1e-30
@@ -116,6 +114,11 @@ def objective_fcn(x, *args):
         tr_sum += np.trace(FIMs[kk])
         #eig_abs_sum += np.max(np.linalg.eigvals(FIMs[kk]))
 
+    # Consider the minimum sensor-target penalty
+    sens_target_penalty = min_distance_penalty(targets_in, sensor_positions, threshold)
+    det_mult = det_mult*sens_target_penalty #will multiply by zero if sensor distances are not met, 1 if they are
+    tr_sum = tr_sum*sens_target_penalty
+
     # Now consider the minimum sensor-sensor distance penalty
     # Need to perform this over all sensors in the WSN
     sens_sens_penalty = min_sensor_distance_penalty(sensor_positions, d_sens_min)
@@ -175,7 +178,7 @@ def objective_fcn(x, *args):
     if valid_placement_check:# and valid_WSN:
         # Maximize the determinant of the map
         if counter % printer_counts == 0:
-            print(counter, tr_sum, det_mult)
+            print(counter, tr_sum, det_mult, sens_sens_penalty, valid_WSN_penalty, sens_target_penalty, valid_place_penalty)
 
         fcn_eval_list.append(best_fcn)
         fcn_counter.append(counter)
@@ -198,9 +201,9 @@ data_name_list = []
 #target_mesh_pts = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
 
 # Define rectangular areas to place targets in
-num_areas = 2
-area_origin = [[40,40],[30,50]] # can add additional origins if using multiple rectangles
-area_dim = [[5,7],[3,5]] # same as above
+num_areas = 1
+area_origin = [[44, 42]] # can add additional origins if using multiple rectangles
+area_dim = [[6,6]] # same as above
 target_mesh_points = []
 
 # Place targets
@@ -209,13 +212,13 @@ for i in range(num_areas):
 
 # Define the list of optimizers being tested
 # options are (exactly): 'DIRECT', 'DE', 'SA'
-optimizers = ['DIRECT', 'DE', 'SA']
+optimizers = ['DIRECT']#, 'DE', 'SA']
 
 optimized_vals = []
 
 # Run the multi-objective placements!
 # To pick what's being optimized first, change it around in the objective fcn
-for i in range(2): # set to one if doing single-step. Two otherwise
+for i in range(1): # set to one if doing single-step. Two otherwise
     # Generate figs and plots
     fig = plt.figure()
     ax_opt = fig.add_subplot()
@@ -247,7 +250,7 @@ for i in range(2): # set to one if doing single-step. Two otherwise
             data_name_list.append("DIRECT Optimizer curve")
         elif optimizer == 'DE':
             res = optimize.differential_evolution(objective_fcn, bounds=bounds, args=sensor_list, strategy='best1bin', 
-                                                  popsize=popsize, tol=0.005, mutation=mutation, recombination=recombination, maxiter=max_iters)
+                                                  popsize=popsize, tol=0.01, mutation=mutation, recombination=recombination, maxiter=(int(maxfun_1/popsize/num_sensors)-1))
             data_name_list.append("Diff Ev Optimizer curve")
         elif optimizer == 'SA':
             res = optimize.dual_annealing(objective_fcn, bounds=bounds, args=sensor_list, maxfun=maxfun_1, maxiter=max_iters, no_local_search=True, 
@@ -332,7 +335,7 @@ for j, optimizer in enumerate(optimizers):
 
     for i in range(len(targets_in)//2):
         target_i = [targets_in[0+2*i], targets_in[1+2*i]]
-        new_map = plot_uncertainty_ellipse(new_map, FIMs_stats[i], target_i, 2.48, 1, colors[j], "analytical")
+        new_map = plot_uncertainty_ellipse(new_map, FIMs_stats[i], target_i, 1, 1, colors[j], "analytical")
         #new_map = plot_uncertainty_ellipse(new_map, FIMs_random[i], target_i, 2.48, 1, "blue", "numerical")
         
         # Compute the stats
