@@ -1,6 +1,6 @@
 ### Sensor Placement Project
 
-### Main branch for fully-functional (for paper use)
+### Main branch for fully-functional scripts (generates data for paper)
 
 The focus of this work is optimal sensor placement for mapping and monitoring of partially-known environments, with an emphasis on sensor-environment interactions.
 
