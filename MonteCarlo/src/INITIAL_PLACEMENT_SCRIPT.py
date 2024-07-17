@@ -34,10 +34,10 @@ terrain.load_from_csv(my_path)
 # INITIAL SENSOR LIST
 # Characteristic list
 sensor_rad = [50, 50, 50, 50]
-sensor_type = ["seismic","acoustic","seismic", "acoustic"]
+sensor_type = ["seismic","seismic","seismic", "acoustic"]
 num_sensors = len(sensor_type)
 sensor_comm_ratio = 0.4 # ratio of sensor communication to sensing radius 
-meas_type = ["radius", "bearing", "radius", "bearing"] #radius or bearing
+meas_type = ["radius", "radius", "radius", "bearing"] #radius or bearing
 LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
 
 # OPTIMIZATION PARAMETERS
@@ -46,7 +46,7 @@ d_sens_min = 4 #minimum sensor-sensor distance
 printer_counts = 500 #print the results every ___ fcn calls
 
 # DIRECT Parameters
-vol_tol = 1e-30
+vol_tol = (1e-5)**(len(sensor_rad)*2)
 max_iters = 15000
 maxfun_1 = 15000
 
@@ -178,7 +178,7 @@ def objective_fcn(x, *args):
     if valid_placement_check:# and valid_WSN:
         # Maximize the determinant of the map
         if counter % printer_counts == 0:
-            print(counter, tr_sum, det_mult, sens_sens_penalty, valid_WSN_penalty, sens_target_penalty, valid_place_penalty)
+            print(counter, tr_sum, det_mult, sens_sens_penalty, valid_WSN_penalty, sens_target_penalty, valid_place_penalty, eps_opt_penalty)
 
         fcn_eval_list.append(best_fcn)
         fcn_counter.append(counter)
@@ -198,11 +198,11 @@ data_save_off = []
 data_name_list = []
 
 # Generate target mesh here!
-#target_mesh_points = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
+# target_mesh_points = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
 
 # Define rectangular areas to place targets in
-area_origin =  [[47, 45], [45, 41], [53, 50], [56, 54]] # can add additional origins if using multiple rectangles
-area_dim = [[6,6], [6,6], [6,4], [6,4]] # same as above
+area_origin =  [[41, 45], [47, 49], [45, 41], [55, 37], [43, 43], [51, 39]] # can add additional origins if using multiple rectangles
+area_dim = [[14, 4], [8, 4], [14, 4], [10, 4], [2,2], [4, 2]] # [width, height]
 target_mesh_points = []
 
 # Place targets
@@ -212,7 +212,6 @@ for i in range(len(area_origin)):
 # Define the list of optimizers being tested
 # options are (exactly): 'DIRECT', 'DE', 'SA'
 optimizers = ['DIRECT']#, 'DE', 'SA']
-
 optimized_vals = []
 
 # Run the multi-objective placements!
@@ -326,7 +325,7 @@ ax = terrain.plot_grid(_map)
 new_map = add_targets(ax, targets_in)
 
 # Set colors for optimizer. Must be the same length as number of optimizers
-colors = ["grey", "blue", "red"]
+colors = ["grey", "blue", "red", "grey", "blue", "red"]
 
 FIM_save_data.append(targets_in)
 FIM_save_names.append("targets calculated")
@@ -346,12 +345,12 @@ for j, optimizer in enumerate(optimizers):
         Cov_Mat, a, b, sx, sy, area_first = uncertainty_ellipse_stats(FIMs_stats[i], target, 2.48, 1)
         FIM_areas.append(area_first)
         maj_axis.append(a)
-        std_devs.append(sx)
-        std_devs.append(sy)
+        std_devs.append(sx**2)
+        std_devs.append(sy**2)
 
     print(optimizer, " mean area:", np.mean(FIM_areas))
     print(optimizer, " largest axis", np.max(maj_axis))
-    print(optimizer, " std devs", np.mean(std_devs))
+    print(optimizer, " variances both x, y", np.mean(std_devs))
 
     # Save off data!
     sensor_save_data.append(sensor_list)
