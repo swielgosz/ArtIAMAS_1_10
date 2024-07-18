@@ -62,8 +62,8 @@ visit = 2.75
 
 # ------------------------------------------
 # Define rectangular areas to place targets in
-area_origin =  [[41, 45], [47, 49], [45, 41], [53, 37]] # can add additional origins if using multiple rectangles
-area_dim = [[14, 4], [8, 4], [14, 4], [12, 4]] # [width, height]
+area_origin =  [[39, 39], [41, 37], [43, 35], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
+area_dim = [[14, 6], [8, 2], [4,2], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
 target_mesh_points = []
 
 # Place targets

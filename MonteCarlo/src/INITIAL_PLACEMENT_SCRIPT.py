@@ -41,14 +41,14 @@ meas_type = ["radius", "radius", "radius", "bearing"] #radius or bearing
 LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
 
 # OPTIMIZATION PARAMETERS
-threshold = 5 #minimum distance a sensor must be from a target
+threshold = 6 #minimum distance a sensor must be from a target
 d_sens_min = 4 #minimum sensor-sensor distance
 printer_counts = 500 #print the results every ___ fcn calls
 
 # DIRECT Parameters
-vol_tol = (1e-5)**(len(sensor_rad)*2)
-max_iters = 15000
-maxfun_1 = 15000
+vol_tol = 1e-32
+max_iters = 5000
+maxfun_1 = 5000
 
 # DE Parameters - optimized!
 popsize = 7
@@ -116,8 +116,8 @@ def objective_fcn(x, *args):
 
     # Consider the minimum sensor-target penalty
     sens_target_penalty = min_distance_penalty(targets_in, sensor_positions, threshold)
-    det_mult = det_mult*sens_target_penalty #will multiply by zero if sensor distances are not met, 1 if they are
-    tr_sum = tr_sum*sens_target_penalty
+    det_mult = det_mult*(1-sens_target_penalty) #will multiply by zero if sensor distances are not met, 1 if they are
+    tr_sum = tr_sum*(1-sens_target_penalty)
 
     # Now consider the minimum sensor-sensor distance penalty
     # Need to perform this over all sensors in the WSN
@@ -178,7 +178,7 @@ def objective_fcn(x, *args):
     if valid_placement_check:# and valid_WSN:
         # Maximize the determinant of the map
         if counter % printer_counts == 0:
-            print(counter, tr_sum, det_mult, sens_sens_penalty, valid_WSN_penalty, sens_target_penalty, valid_place_penalty, eps_opt_penalty)
+            print(counter, best_fcn, tr_sum, det_mult, sens_sens_penalty, valid_WSN_penalty, sens_target_penalty, valid_place_penalty, eps_opt_penalty)
 
         fcn_eval_list.append(best_fcn)
         fcn_counter.append(counter)
@@ -201,9 +201,24 @@ data_name_list = []
 # target_mesh_points = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
 
 # Define rectangular areas to place targets in
-area_origin =  [[41, 45], [47, 49], [45, 41], [55, 37], [43, 43], [51, 39]] # can add additional origins if using multiple rectangles
-area_dim = [[14, 4], [8, 4], [14, 4], [10, 4], [2,2], [4, 2]] # [width, height]
+# area_origin =  [[41, 45], [47, 49], [45, 41], [55, 37], [43, 43], [51, 39]] # can add additional origins if using multiple rectangles
+# area_dim = [[14, 4], [8, 4], [14, 4], [10, 4], [2,2], [4, 2]] # [width, height]
 target_mesh_points = []
+
+#area_origin = [[47, 45], [45, 41], [53, 50], [56, 54], [60, 34], [54, 38]]
+#area_dim =  [[6,6], [6,6], [4,4], [4,4], [6,6], [4,4]]
+
+#area_origin = [[47, 45], [45, 41], [53, 50], [56, 54]]
+#area_dim = [[6,6], [6,6], [4,4], [4,4]]
+
+#area_origin =  [[39, 39], [41, 37], [43, 35], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
+#area_dim = [[14, 6], [8, 2], [4,2], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
+
+#area_origin =  [[39, 39], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
+#area_dim = [[14, 6], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
+
+area_origin =  [[39, 41], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
+area_dim = [[14, 4], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
 
 # Place targets
 for i in range(len(area_origin)):
@@ -241,7 +256,8 @@ for i in range(2): # set to one if doing single-step. Two otherwise
         fcn_eval_list, fcn_counter = [], []
         counter, best_fcn = 0, 0
         
-        print("Start", optimizer, "optimizer")
+        print("Start", optimizer, "optimizer. Legend below:")
+        print("counter, best_fcn, tr_sum, det_mult, sens_sens_penalty, valid_WSN_penalty, sens_target_penalty, valid_place_penalty, eps_opt_penalty")
 
         if optimizer == 'DIRECT':
             res = optimize.direct(objective_fcn, bounds=bounds, args = sensor_list, vol_tol=vol_tol, maxfun = maxfun_1, maxiter = max_iters)

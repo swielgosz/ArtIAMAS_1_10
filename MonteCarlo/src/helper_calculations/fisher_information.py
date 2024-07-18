@@ -46,7 +46,7 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
         penalty = 1 # NOTE: CHANGED TO GLOBALLY SATISFY CONSTRAINT
 
         # Distance-based noise scaling
-        eta = 0.01
+        eta = 0.02
         dist_noise_scaling = (1+eta*r[i])
 
         if sensor_types[i] == "bearing":

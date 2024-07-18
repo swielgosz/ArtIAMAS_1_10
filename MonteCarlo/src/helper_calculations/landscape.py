@@ -383,9 +383,9 @@ class Configuration:
             elif n.veg_level > 0.5:
                 return 0
         elif n.land_type.land_type == "road":
-            return 1
+            return 2
         elif n.land_type.land_type == "manmade":
-            return 1
+            return 5
         
     # Commented this out because we want to remove the sensor weighting factor
     # # Calculate cost (configuration profit in PPT) of configuration. We want to maximize the cost, i.e. maximize information known about the environment

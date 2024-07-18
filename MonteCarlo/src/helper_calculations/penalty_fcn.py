@@ -32,8 +32,12 @@ def min_distance_penalty(targets, sensors, d_min):
                 sens_target_min = d_ts
     
     # Return penalty
-    return 1/(1+np.exp(-mu*(sens_target_min-d_min)))
-    
+    return 1/(1+np.exp(mu*(sens_target_min-d_min)))#*((sens_target_min-d_min) + 1)
+    #if sens_target_min < d_min:
+    #    return 0.25*(sens_target_min - d_min)**2
+    #else: 
+    #    return 0
+
 
 # Minimum sensor-sensor spacing (inequality)
 def min_sensor_distance_penalty(sensors, d_min):
