@@ -178,7 +178,7 @@ def plot_uncertainty_ellipse(_map, FIM, target, confidence, plot_scale, color, s
     elif solve_type == 'analytical':
         linestyle = '-'
 
-    _map.plot( u+a*np.cos(t)*np.cos(theta) - b*np.sin(theta)*np.sin(t), 
+    _map.plot(u+a*np.cos(t)*np.cos(theta) - b*np.sin(theta)*np.sin(t), 
               v+a*np.cos(t)*np.sin(theta) + b*np.cos(theta)*np.sin(t), 
               color = color, lw = 1.2, linestyle = linestyle)
 

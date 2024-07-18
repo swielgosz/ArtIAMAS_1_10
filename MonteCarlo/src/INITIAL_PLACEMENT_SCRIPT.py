@@ -224,6 +224,9 @@ area_dim = [[14, 4], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
 for i in range(len(area_origin)):
     target_mesh_points = make_target_mesh(target_mesh_points,terrain,area_origin[i], area_dim[i])
 
+# Save mesh
+save_data([target_mesh_points], ["target_mesh"], "Case1_TargetMesh", "Case 1 - int sensor place target mesh")
+
 # Define the list of optimizers being tested
 # options are (exactly): 'DIRECT', 'DE', 'SA'
 optimizers = ['DIRECT']#, 'DE', 'SA']
@@ -300,6 +303,9 @@ for i in range(2): # set to one if doing single-step. Two otherwise
 # modify optimizer list for later printing
 optimizers = optimizers*num_runs
 
+# Save optimizer plot data
+save_data(data_save_off, data_name_list, "Case1_OptimizerRuns", "Case 1 - optimizer runs")
+
 # Plot formatting
 ax_opt.set_ylabel('Objective Function Evaluations'), ax_opt.set_xlabel('Iteration Count')
 #ax_opt.set_ylim([min(fcn_eval_list)*1.25, max(fcn_eval_list)*1.25])
@@ -318,6 +324,7 @@ for target in target_mesh_points:
         targets_in.append(pt) 
 
 # Analyze results
+FIM_save_list = []
 for i, sensor_list in enumerate(optimized_vals):
     inputs = target_localized_successfully, targets_in, sensor_list, sensor_rad, meas_type, terrain, 0 #LOS_flag == 1
     (FIMs_first_run, det_sum) = build_map_FIMS(inputs)
@@ -334,7 +341,6 @@ print('-----------------------------------')
 # It's not always necessary because the ellipses can get unecessarily large
 
 sensor_save_data, sensor_save_names = [], []
-FIM_save_data, FIM_save_names = [], []
 
 _map = make_basic_seismic_map(num_sensors, sensor_rad, sensor_type, meas_type, sensor_comm_ratio, x_out)
 ax = terrain.plot_grid(_map)
@@ -342,21 +348,19 @@ new_map = add_targets(ax, targets_in)
 
 # Set colors for optimizer. Must be the same length as number of optimizers
 colors = ["grey", "blue", "red", "grey", "blue", "red"]
-
-FIM_save_data.append(targets_in)
-FIM_save_names.append("targets calculated")
-
+FIM_data = []
 for j, optimizer in enumerate(optimizers):
     sensor_list = optimized_vals[j]
     inputs = target_localized_successfully, targets_in, sensor_list, sensor_rad, meas_type, terrain, 0 #LOS_flag == 1
     (FIMs_stats, det_sum) = build_map_FIMS(inputs)
     FIM_areas, maj_axis, std_devs = [], [], []
+    FIM_save_data1, FIM_save_data2, target_save_data = [], [], []
 
     for i in range(len(targets_in)//2):
         target_i = [targets_in[0+2*i], targets_in[1+2*i]]
         new_map = plot_uncertainty_ellipse(new_map, FIMs_stats[i], target_i, 1, 1, colors[j], "analytical")
         #new_map = plot_uncertainty_ellipse(new_map, FIMs_random[i], target_i, 2.48, 1, "blue", "numerical")
-        
+
         # Compute the stats
         Cov_Mat, a, b, sx, sy, area_first = uncertainty_ellipse_stats(FIMs_stats[i], target, 2.48, 1)
         FIM_areas.append(area_first)
@@ -364,19 +368,20 @@ for j, optimizer in enumerate(optimizers):
         std_devs.append(sx**2)
         std_devs.append(sy**2)
 
+    FIM_data.append(FIMs_stats)
+
     print(optimizer, " mean area:", np.mean(FIM_areas))
     print(optimizer, " largest axis", np.max(maj_axis))
     print(optimizer, " variances both x, y", np.mean(std_devs))
 
-    # Save off data!
+    # Store data for saving off
     sensor_save_data.append(sensor_list)
     sensor_save_names.append(optimizer)
 
-    FIM_save_data.append(FIM_areas)
-    FIM_save_data.append(maj_axis)
-    FIM_save_names.append(optimizer+" mean area")
-    FIM_save_names.append(optimizer+" largest axis")
-
+# Save off data
+FIM_data.append(targets_in)
+FIM_save_names = ["First run FIMs", "Second run FIMs", "Associated Targets"]
+save_data(FIM_data, FIM_save_names, "FIM_Save_data", "FIM and each associated target")
 
 # Add to plot
 for j, optimizer in enumerate(optimizers):
@@ -385,9 +390,9 @@ for j, optimizer in enumerate(optimizers):
             ax.plot(optimized_vals[j][0+2*i], optimized_vals[j][1+2*i], marker='x', color = colors[j])
             ax.text(optimized_vals[j][0+2*i]+1, optimized_vals[j][1+2*i]+1, optimizer)
 
-# Save off data!
+# Save off sensor data
+sensor_save_data.append(meas_type)
+sensor_save_names.append("measurement type")
 save_data(sensor_save_data, sensor_save_names, "init_sensor_placements", "Initial sensor placement results for differnet optimizers")
-save_data(FIM_save_data, FIM_save_names, "init_fim_characteristics", "Initial sensor placement FIM characteristics")
-save_data(data_save_off, data_name_list, "Init_place_opt_evals", "Initial Placement Optimization Runs")
 
 plt.show()
