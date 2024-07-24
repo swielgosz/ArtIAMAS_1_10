@@ -17,6 +17,8 @@ from helper_calculations.localization_calculations import sensor_localization_ro
 from helper_calculations.sensor_vision import get_LOS_coeff
 from helper_calculations.penalty_fcn import min_distance_penalty, min_sensor_distance_penalty, valid_sensor_penalty, WSN_penalty
 from helper_calculations.target_meshing import make_target_mesh, sample_target_mesh
+from helper_calculations.save_vals import save_data
+
 # -------- DESCRIPTION -----------------
 # This script was makes an ADDITIONAL of a set of sensors by minimizing
 # the determinant of a FIM constructed about the entire map. Optimization is
@@ -40,13 +42,14 @@ terrain.load_from_csv(my_path)
 
 ### TARGET INPUTS ###
 # Create the target mesh
-area_origin =  [[39, 41], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
-area_dim = [[14, 4], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
+area_origin =  [[55, 35], [57, 33], [61, 33], [63, 33], [34, 28], [36, 32], [40, 34]] # can add additional origins if using multiple rectangles
+area_dim = [[2, 8], [4, 10], [2, 6], [2, 4], [8, 4], [8, 2], [4, 2]] # [width, height]
 target_mesh_points = []
+step = 1 # more finely sample compared to the initial run!
 
 # Place targets
 for i in range(len(area_origin)):
-    target_mesh_points = make_target_mesh(target_mesh_points,terrain,area_origin[i], area_dim[i])
+    target_mesh_points = make_target_mesh(target_mesh_points,terrain,area_origin[i], area_dim[i], step)
 
 # Sample from mesh
 n = 5 # points to sample from
@@ -59,24 +62,24 @@ for target in targets_discovered:
     targets.append(target[1])
 
 ### SENSOR INPUTS ###
-sensor_locs = [63.21988299009363, 50.301701179412916, 41.62841105952802, 55.718909428926395, 57.80425238524424, 42.869635611693795, 46.9996883909076, 58.33687905728023]
-sensor_rad = [50, 50, 50, 50]
-sensor_type = ["seismic","seismic","seismic", "acoustic"]
+sensor_locs = [54.50633808, 46.32458927, 40.44200985, 39.33369424, 47.27705969, 30.66311726]
+sensor_rad = [35, 35, 35]
+sensor_type = ["seismic","acoustic","seismic"]
 num_sensors = len(sensor_type)
-sensor_comm_ratio = 0.4 # ratio of sensor communication to sensing radius 
-meas_type = ["radius", "radius", "radius", "bearing"] #radius or bearing
+sensor_comm_ratio = 0.75 # ratio of sensor communication to sensing radius 
+meas_type = ["radius", "bearing", "radius"]
 LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
 
 # OPTIMIZATION PARAMETERS
-threshold = 6 #minimum distance a sensor must be from a target
+threshold = 4 #minimum distance a sensor must be from a target
     # NOTE: THIS IS ENFORCED IN FISHER_INFORMATION.PY -> BUILD_FIM()!!!
     # GO THERE TO CHANGE THE PARAMETER
 d_sens_min = 4 #minimum sensor-sensor distance
-maxfun_1 = 20000 #Max fun w/o LOS
-max_iters = 20000
+maxfun_1 = 50000 #Max fun w/o LOS
+max_iters = 50000
 printer_counts = 1000 #print the results every ___ fcn calls
 # Use list to run a parameter sweep
-vol_tol = 1e-24
+vol_tol = (1e-5)**(2*2)
 # vol_tol = [1e-14] #optimization param
 # ------------------------------------------
 
@@ -90,7 +93,7 @@ inputs = target_localized_successfully, targets, sensor_locs, sensor_rad, meas_t
 for i in range(len(targets)//2):
     target_i = [targets[0+2*i], targets[1+2*i]]
     # Compute the stats
-    Cov_Mat, a, b, sx, sy, area = uncertainty_ellipse_stats(FIMs_stats[i], target_i, 2.48, 1)
+    Cov_Mat, a, b, sx, sy, area = uncertainty_ellipse_stats(FIMs_stats[i], target_i, 1, 1)
     print("Target and area:", target_i, area)
 
 # ------------------------------------------
@@ -221,11 +224,11 @@ def objective_fcn(x, *args):
 # ------------------------------------------
 # Set a list of additional sensors to place down
 # SENSOR LIST
-sensor_rad_new = [50, 50]
+sensor_rad_new = [35, 35]
 sensor_type_new = ["seismic", "acoustic"]
 num_sensors_new = len(sensor_type_new)
 sensor_comm_ratio_new = sensor_comm_ratio # ratio of sensor communication to sensing radius 
-meas_type_new = ["bearing", "radial"]
+meas_type_new = ["radius", "radius"]
 
 # RUN THE OPTIMIZER!
 optimized_vals = []
@@ -307,7 +310,7 @@ for j, sensor_positions in enumerate(optimized_vals):
     for i in range(len(targets)//2):
         target_i = [targets[0+2*i], targets[1+2*i]]
         # Compute the stats
-        Cov_Mat, a, b, sx, sy, area = uncertainty_ellipse_stats(FIMs_final[i], target_i, 2.48, 1)
+        Cov_Mat, a, b, sx, sy, area = uncertainty_ellipse_stats(FIMs_final[i], target_i, 1, 1)
         print("Target and area:", target_i, area)
 
 
@@ -338,6 +341,16 @@ for i in range(len(sensor_locs)//2):
 
 for i in range(len(x_out)//2):
     plt.text(x_out[0+2*i]+1, x_out[1+2*i]+1, "F") #plots the LOS sensors
+
+# save off sensor information
+sensor_save_off = [sensors_in, meas_type_total]
+sensor_save_names = ["sensor locations", "sensor_types"]
+save_data(sensor_save_off, sensor_save_names, "final_sensor_placements_Case1", "Case 1 final sensor placement")
+
+# save off FIMs
+FIM_save_off = [targets, FIMs_stats, FIMs_final] #targets, initial fims, final fims
+FIM_save_name = ["targets sampled", "initial FIMs", "final FIMs"]
+save_data(FIM_save_off, FIM_save_name, "final_sensor_FIMs_Case1", "Case 1 final FIMs")
 
 
 plt.show()
