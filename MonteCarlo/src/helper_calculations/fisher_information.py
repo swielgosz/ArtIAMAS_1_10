@@ -168,7 +168,7 @@ def plot_uncertainty_ellipse(_map, FIM, target, confidence, plot_scale, color, s
     v=target[1]     #y-position of the center
     
     # Uncomment to print stats as necessary
-    # print("ellipse area:", np.pi*a*b,"for target:", target)
+    print("ellipse area:", np.pi*a*b, "major axis:", a, "for target:", target)
     # print("Confid*sx, sy:", sx*plot_scale, sy*plot_scale, "major, minor axes", a, b, "for target:", target )
 
     # Plot!

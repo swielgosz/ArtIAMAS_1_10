@@ -17,6 +17,8 @@ from helper_calculations.localization_calculations import sensor_localization_ro
 from helper_calculations.sensor_vision import get_LOS_coeff
 from helper_calculations.penalty_fcn import min_distance_penalty, min_sensor_distance_penalty, valid_sensor_penalty, WSN_penalty
 from helper_calculations.target_meshing import make_target_mesh, sample_target_mesh
+from helper_calculations.save_vals import save_data
+
 # -------- DESCRIPTION -----------------
 # This script was makes an ADDITIONAL of a set of sensors by minimizing
 # the determinant of a FIM constructed about the entire map. Optimization is
@@ -40,13 +42,16 @@ terrain.load_from_csv(my_path)
 
 ### TARGET INPUTS ###
 # Create the target mesh
-area_origin =  [[39, 41], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
-area_dim = [[14, 4], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
+#area_origin =  [[55, 35], [57, 33], [61, 33], [63, 33], [34, 28], [36, 32], [40, 34]] # can add additional origins if using multiple rectangles
+#area_dim = [[2, 8], [4, 10], [2, 6], [2, 4], [8, 4], [8, 2], [4, 2]] # [width, height]
+area_size = 8
+area_dim, area_origin = [[area_size, area_size]], [[int(45 - area_size/2), int(44 - area_size/2)]]
 target_mesh_points = []
+step = 1 # more finely sample compared to the initial run!
 
 # Place targets
 for i in range(len(area_origin)):
-    target_mesh_points = make_target_mesh(target_mesh_points,terrain,area_origin[i], area_dim[i])
+    target_mesh_points = make_target_mesh(target_mesh_points,terrain,area_origin[i], area_dim[i], step)
 
 # Sample from mesh
 n = 5 # points to sample from
@@ -59,24 +64,36 @@ for target in targets_discovered:
     targets.append(target[1])
 
 ### SENSOR INPUTS ###
-sensor_locs = [63.21988299009363, 50.301701179412916, 41.62841105952802, 55.718909428926395, 57.80425238524424, 42.869635611693795, 46.9996883909076, 58.33687905728023]
-sensor_rad = [50, 50, 50, 50]
-sensor_type = ["seismic","seismic","seismic", "acoustic"]
+# 24 sensor_locs = [66.00250600783802, 43.80635573365854, 28.10861581306392, 31.367866034052334, 28.095099025020016, 45.63039083721342, 42.506997343181006, 27.106106989091412 ] 
+# 20 sensor_locs = [66.00251486053955, 43.997485139460444, 28.10859625057156, 31.367855509830818, 29.33081847279378, 44.545724737082764, 43.997485139460444, 29.099451303155004 ]
+# 16 sensor_locs = [18.330818472793784, 32.997485139460444, 21.99748513946045, 66.00251486053955, 30.494360615759792, 45.63046791647615, 42.507011126352694, 32.999161713153484 ]
+# 10 sensor_locs = [18.330818472793784, 32.997485139460444, 21.99748513946045, 66.00251486053955, 30.494360615759792, 45.63046791647615, 42.507011126352694, 32.999161713153484 ]
+# 4 sensor_locs = [ 21.99748513946045, 66.00251486053955, 28.10859625057156, 31.367855509830818, 32.454275262917236, 48.89140374942844, 45.62711476909008, 48.95176040237769 ]
+# 
+# 26 sensor_locs = [23.125166123902392, 65.50117568219949, 29.27697681276731, 50.107078885239105, 49.61706049985459, 26.138902175221656, 60.71995411957447, 46.00355667713992  ]
+# 22 sensor_locs = [65.99293248523503, 43.998026177926945, 28.133470386651677, 31.379191927512217, 29.027043856181255, 44.500370588153714, 43.55212240049665, 28.01212003813943 ]
+# 18 sensor_locs = [66.00251486053955, 43.18770004572474, 28.10859625057156, 31.369532083523854, 30.494360615759792, 45.63046791647615, 42.780292638317334, 29.332495046486816 ]
+# 14 sensor_locs = [65.91546858692391, 44.001254549039956, 28.348701122179254, 31.485793154769283, 33.15200727116978, 40.498299174348325, 44.95865249595396, 32.23886942737841 ]
+# 12 sensor_locs = [21.99748513946045, 66.00251486053955, 28.10859625057156, 31.367855509830818, 32.997485139460444, 40.33081847279378, 44.817329675354365, 32.997485139460444 ]
+# 6 sensor_locs = [21.99748513946045, 66.00251486053955, 28.10859625057156, 31.367855509830818, 32.997485139460444, 49.5, 46.446959304984, 50.11362597165067 ]
+sensor_locs = [21.99748514, 66.00251486, 28.10859625, 31.36785551, 32.99748514, 49.5, 46.50731596, 51.51691815]
+sensor_rad = [100, 100, 100, 100]
+sensor_type = ["seismic","seismic","acoustic","acoustic"]
 num_sensors = len(sensor_type)
-sensor_comm_ratio = 0.4 # ratio of sensor communication to sensing radius 
-meas_type = ["radius", "radius", "radius", "bearing"] #radius or bearing
+sensor_comm_ratio = 0.5 # ratio of sensor communication to sensing radius 
+meas_type = ["radius", "radius", "bearing", 'bearing']
 LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
 
 # OPTIMIZATION PARAMETERS
-threshold = 6 #minimum distance a sensor must be from a target
+threshold = 4 #minimum distance a sensor must be from a target
     # NOTE: THIS IS ENFORCED IN FISHER_INFORMATION.PY -> BUILD_FIM()!!!
     # GO THERE TO CHANGE THE PARAMETER
 d_sens_min = 4 #minimum sensor-sensor distance
-maxfun_1 = 20000 #Max fun w/o LOS
-max_iters = 20000
-printer_counts = 1000 #print the results every ___ fcn calls
+maxfun_1 = 40000 #Max fun w/o LOS
+max_iters = 40000
+printer_counts = 5000 #print the results every ___ fcn calls
 # Use list to run a parameter sweep
-vol_tol = 1e-24
+vol_tol = (1e-5)**(2*2)
 # vol_tol = [1e-14] #optimization param
 # ------------------------------------------
 
@@ -90,7 +107,7 @@ inputs = target_localized_successfully, targets, sensor_locs, sensor_rad, meas_t
 for i in range(len(targets)//2):
     target_i = [targets[0+2*i], targets[1+2*i]]
     # Compute the stats
-    Cov_Mat, a, b, sx, sy, area = uncertainty_ellipse_stats(FIMs_stats[i], target_i, 2.48, 1)
+    Cov_Mat, a, b, sx, sy, area = uncertainty_ellipse_stats(FIMs_stats[i], target_i, 1, 1)
     print("Target and area:", target_i, area)
 
 # ------------------------------------------
@@ -221,11 +238,11 @@ def objective_fcn(x, *args):
 # ------------------------------------------
 # Set a list of additional sensors to place down
 # SENSOR LIST
-sensor_rad_new = [50, 50]
+sensor_rad_new = [35, 35]
 sensor_type_new = ["seismic", "acoustic"]
 num_sensors_new = len(sensor_type_new)
 sensor_comm_ratio_new = sensor_comm_ratio # ratio of sensor communication to sensing radius 
-meas_type_new = ["bearing", "radial"]
+meas_type_new = ["radius", "bearing"]
 
 # RUN THE OPTIMIZER!
 optimized_vals = []
@@ -307,7 +324,7 @@ for j, sensor_positions in enumerate(optimized_vals):
     for i in range(len(targets)//2):
         target_i = [targets[0+2*i], targets[1+2*i]]
         # Compute the stats
-        Cov_Mat, a, b, sx, sy, area = uncertainty_ellipse_stats(FIMs_final[i], target_i, 2.48, 1)
+        Cov_Mat, a, b, sx, sy, area = uncertainty_ellipse_stats(FIMs_final[i], target_i, 1, 1)
         print("Target and area:", target_i, area)
 
 
@@ -338,6 +355,16 @@ for i in range(len(sensor_locs)//2):
 
 for i in range(len(x_out)//2):
     plt.text(x_out[0+2*i]+1, x_out[1+2*i]+1, "F") #plots the LOS sensors
+
+# save off sensor information
+sensor_save_off = [sensors_in, meas_type_total]
+sensor_save_names = ["sensor locations", "sensor_types"]
+save_data(sensor_save_off, sensor_save_names, "final_sensor_placements_Case1", "Case 1 final sensor placement")
+
+# save off FIMs
+FIM_save_off = [targets, FIMs_stats, FIMs_final] #targets, initial fims, final fims
+FIM_save_name = ["targets sampled", "initial FIMs", "final FIMs"]
+save_data(FIM_save_off, FIM_save_name, "final_sensor_FIMs_Case1", "Case 1 final FIMs")
 
 
 plt.show()

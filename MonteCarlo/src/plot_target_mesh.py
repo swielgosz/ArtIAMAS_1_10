@@ -62,13 +62,13 @@ visit = 2.75
 
 # ------------------------------------------
 # Define rectangular areas to place targets in
-area_origin =  [[39, 39], [41, 37], [43, 35], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
-area_dim = [[14, 6], [8, 2], [4,2], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
+area_origin =  [[55, 35], [57, 33], [61, 33], [63, 33], [34, 28], [36, 32], [40, 34]] # can add additional origins if using multiple rectangles
+area_dim = [[2, 8], [4, 10], [2, 6], [2, 4], [8, 4], [8, 2], [4, 2]] # [width, height]
 target_mesh_points = []
 
 # Place targets
 for i in range(len(area_origin)):
-    target_mesh_points = make_target_mesh(target_mesh_points,terrain,area_origin[i], area_dim[i])
+    target_mesh_points = make_target_mesh(target_mesh_points,terrain,area_origin[i], area_dim[i], 2)
 
 # Localize the new map
 target_localized_successfully = [1 for _ in range(len(target_mesh_points ))] #just need a list of 1's 
