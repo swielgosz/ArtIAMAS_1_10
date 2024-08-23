@@ -33,28 +33,28 @@ terrain.load_from_csv(my_path)
 
 # INITIAL SENSOR LIST
 # Characteristic list
-sensor_rad = [35, 35, 35, 35]
-sensor_type = ["seismic","seismic","seismic","seismic"]
+sensor_rad = [100, 100, 100, 100]
+sensor_type = ["seismic","seismic","acoustic","acoustic"]
 num_sensors = len(sensor_type)
-sensor_comm_ratio = 0.75 # ratio of sensor communication to sensing radius 
-meas_type = ["radius", "radius", "radius", 'radius']
+sensor_comm_ratio = 0.5 # ratio of sensor communication to sensing radius 
+meas_type = ["radius", "radius", "bearing", 'bearing']
 LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
 
 # OPTIMIZATION PARAMETERS
 threshold = 4 #minimum distance a sensor must be from a target
 d_sens_min = 4 #minimum sensor-sensor distance
-printer_counts = 500 #print the results every ___ fcn calls
+printer_counts = 5000 #print the results every ___ fcn calls
 
 # DIRECT Parameters
-vol_tol = 1e-32 # should scale (about) as (1e-4)^(2N) where N is the num of sensors
-max_iters = 15000
-maxfun_1 = 15000
+vol_tol = 1e-36 # should scale (about) as (1e-4)^(2N) where N is the num of sensors
+max_iters = 25000
+maxfun_1 = 20000
 
 # DE Parameters - optimized!
 popsize = 7
 mutation = 0.8
 recombination = 0.8
-max_fun_DE = 12000
+max_fun_DE = 15000
 
 # Sim Annealing Params
 initial_temp = 3000
@@ -138,7 +138,7 @@ def objective_fcn(x, *args):
 
     # Finally, check that the sensors are indeed in a WSN and add penalty as necessary
     # Uses _map, constructed above
-    valid_WSN = terrain.is_configuration_valid(_map)
+    #valid_WSN = terrain.is_configuration_valid(_map)
     if valid_WSN:
         valid_WSN_penalty = 1 # 1 is satisfaction of WSN
     else:
@@ -161,7 +161,7 @@ def objective_fcn(x, *args):
     
     # PICK OPTIMIZATION ORDER HERE!
     if step_num == 1:
-        optimizer_var = tr_sum #CHANGE THIS 
+        optimizer_var = det_mult #CHANGE THIS 
         eps_opt_penalty = 1
         prev_opt = 1
     elif step_num == 2:
@@ -199,180 +199,196 @@ def objective_fcn(x, *args):
 data_save_off = []
 data_name_list = []
 
-# Generate target mesh here!
-# target_mesh_points = [[50, 50],[49, 49],[51, 51], [60, 60], [62, 62], [58, 58], [40, 40], [42, 42], [53, 48], [55, 50], [53, 50], [55, 48]]
+# Areas
+area_list = [10] 
+area_plot = [l*l for l in area_list]
 
-# Define rectangular areas to place targets in
-# area_origin =  [[41, 45], [47, 49], [45, 41], [55, 37], [43, 43], [51, 39]] # can add additional origins if using multiple rectangles
-# area_dim = [[14, 4], [8, 4], [14, 4], [10, 4], [2,2], [4, 2]] # [width, height]
-target_mesh_points = []
+# Data to compare
+det_area_list, tr_area_list = [], []
+det_largest_axis, tr_largest_axis = [], []
+det_mean_var, tr_mean_var = [], []
+det_vals, tr_vals = [], []
+opt_var = []
+sensor_positions_save = []
+sensor_names_save = []
 
-#area_origin = [[47, 45], [45, 41], [53, 50], [56, 54], [60, 34], [54, 38]]
-#area_dim =  [[6,6], [6,6], [4,4], [4,4], [6,6], [4,4]]
+for area_size in area_list: # For EACH tested area
 
-#area_origin = [[47, 45], [45, 41], [53, 50], [56, 54]]
-#area_dim = [[6,6], [6,6], [4,4], [4,4]]
+    # Construct the mesh
+    area_dim, area_origin = [[area_size, area_size]], [[int(45 - area_size/2), int(44 - area_size/2)]]
+    step = 2
 
-#area_origin =  [[39, 39], [41, 37], [43, 35], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
-#area_dim = [[14, 6], [8, 2], [4,2], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
+    # Place targets
+    target_mesh_points = []
+    for i in range(len(area_origin)):
+        target_mesh_points = make_target_mesh(target_mesh_points,terrain,area_origin[i], area_dim[i], step)
 
-#area_origin =  [[39, 39], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
-#area_dim = [[14, 6], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
+    # Create target list
+    target_localized_successfully = [1 for _ in range(len(target_mesh_points ))]
+    targets_in = []
+    for target in target_mesh_points:
+        for pt in target:
+            targets_in.append(pt) 
 
-#area_origin =  [[39, 41], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
-#area_dim = [[14, 4], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
+    # Define the list of optimizers being tested
+    optimizers = ['DIRECT']
 
-#area_origin = [[60, 25]]
-#area_dim = [[8, 12]]
-#area_origin =  [[55, 35], [57, 33], [61, 33], [63, 33], [34, 28], [36, 32], [40, 34]] # can add additional origins if using multiple rectangles
-#area_dim = [[2, 8], [4, 10], [2, 6], [2, 4], [8, 4], [8, 2], [4, 2]] # [width, height]
+    ### RUN THE OPTIMIZER
+    for i in range(2): # run 2x - first is trace, second is det!
+        # Generate figs and plots
+        fig = plt.figure()
+        ax_opt = fig.add_subplot()
+        step_num = i+1
 
-area_dim = [[2,2]]
-area_origin = [[49, 49]]
-step = 2
+        # Loop over the tested optimizers
+        for optimizer in optimizers: 
 
-# Place targets
-for i in range(len(area_origin)):
-    target_mesh_points = make_target_mesh(target_mesh_points,terrain,area_origin[i], area_dim[i], step)
-
-# Calculate the perfect upper limit
-upper_tr_lim, upper_det_lim = upper_achieveable_limit(terrain, area_origin, area_dim, num_sensors)
-print("Upper achieveable trace and det limits = ", upper_tr_lim, upper_det_lim)
-
-# Save mesh
-save_data([target_mesh_points], ["target_mesh"], "Case1_TargetMesh", "Case 1 - int sensor place target mesh")
-
-# Define the list of optimizers being tested
-# options are (exactly): 'DIRECT', 'DE', 'SA'
-#optimizers = ['SA', 'DIRECT', 'DE' ]
-optimizers = ['DE']
-optimized_vals = []
-
-# Run the multi-objective placements!
-# To pick what's being optimized first, change it around in the objective fcn
-for i in range(2): # set to one if doing single-step. Two otherwise
-    # Generate figs and plots
-    fig = plt.figure()
-    ax_opt = fig.add_subplot()
-    step_num = i+1
-
-    # Loop over the tested optimizers
-    for optimizer in optimizers: #lets you run multiple tolerances if you want
-
-        if i == 0: # first pass, set constraint to zero
+            # For now, always consider a zero obj constraint
             obj_constraint = 0 
-        
-        #if i == 1: #second pass
-            # Use constraint from ASSOCIATED optimizer!
-        #    if optimizer == 'DIRECT':
-        #        obj_constraint = obj_constraint_DIRECT
-        #    elif optimizer == 'DE':
-        #        obj_constraint = obj_constraint_DE
-        #    elif optimizer == 'SA':
-        #        obj_constraint = obj_constraint_SA
-
-        # Construct tuples to pass in
-        sensor_chars = (sensor_rad, sensor_type, num_sensors, sensor_comm_ratio, meas_type, obj_constraint, step_num)
-        target_ins = (target_mesh_points, terrain)
-
-        # Set the bounds (controls the number of variables to reason over)
-        bounds = [(0, terrain_width-1),(0, terrain_height-1)]*(num_sensors) #bounds placing points to only on the map
-        sensor_list = (sensor_chars, target_ins)   
-
-    
-        fcn_eval_list, fcn_counter = [], []
-        counter, best_fcn = 0, 0
-        
-        print("Start", optimizer, "optimizer. Legend below:")
-        print("counter, best_fcn, tr_sum, det_mult, sens_sens_penalty, valid_WSN_penalty, sens_target_penalty, valid_place_penalty, eps_opt_penalty")
-
-        if optimizer == 'DIRECT':
-            res = optimize.direct(objective_fcn, bounds=bounds, args = sensor_list, vol_tol=vol_tol, maxfun = maxfun_1, maxiter = max_iters)
-            data_name_list.append("DIRECT Optimizer curve")
-            print("Complete optimizing under", optimizer, "with value and iterations", res.fun, counter)
-            print(res.message)
             
-            x_out = res.x #save off prev results to start fine-tuning
-            res = optimize.minimize(objective_fcn, x_out, args = sensor_list, method='BFGS', jac='3-point', options={'gtol': 0.01})
-            obj_constraint_DIRECT = -1.0*res.fun
-            print("Complete fine optimizing under", optimizer, "with value and iterations", res.fun, counter)
+            # Comment out this section to optimize w/o the constraint
+            #if i == 1: #second pass
+                # Use constraint from ASSOCIATED optimizer!
+            #    if optimizer == 'DIRECT':
+            #        obj_constraint = obj_constraint_DIRECT
+            #    elif optimizer == 'DE':
+            #        obj_constraint = obj_constraint_DE
+            #    elif optimizer == 'SA':
+            #        obj_constraint = obj_constraint_SA
 
-        elif optimizer == 'DE':
-            res = optimize.differential_evolution(objective_fcn, bounds=bounds, args=sensor_list, strategy='best1bin', 
-                                                  popsize=popsize, tol=0.01, mutation=mutation, recombination=recombination, maxiter=(int(max_fun_DE/(2*popsize*num_sensors))-1))
-            data_name_list.append("Diff Ev Optimizer curve")
-            print("Complete optimizing under", optimizer, "with value and iterations", res.fun, counter)
-            print(res.message)
+            # Construct tuples to pass in
+            sensor_chars = (sensor_rad, sensor_type, num_sensors, sensor_comm_ratio, meas_type, obj_constraint, step_num)
+            target_ins = (target_mesh_points, terrain)
+
+            # Set the bounds (controls the number of variables to reason over)
+            bounds = [(0, terrain_width-1),(0, terrain_height-1)]*(num_sensors) #bounds placing points to only on the map
+            sensor_list = (sensor_chars, target_ins)   
+
+            fcn_eval_list, fcn_counter = [], []
+            counter, best_fcn = 0, 0
             
-            x_out = res.x #save off prev results to start fine-tuning
-            res = optimize.minimize(objective_fcn, x_out, args = sensor_list, method='BFGS', jac='3-point', options={'gtol': 0.01})
-            obj_constraint_DE = -1.0*res.fun
-            print("Complete fine optimizing under", optimizer, "with value and iterations", res.fun, counter)
-
-        elif optimizer == 'SA':
-            res = optimize.dual_annealing(objective_fcn, bounds=bounds, args=sensor_list, maxfun=maxfun_1, maxiter=max_iter_SA, no_local_search=True, 
-                                          initial_temp=initial_temp, restart_temp_ratio=restart_temp_ratio, visit=visit, accept = -0.01)
-            data_name_list.append("Sim Anneal Optimizer curve")
-            print("Complete optimizing under", optimizer, "with value and iterations", res.fun, counter)
-            print(res.message)
+            print("Start", optimizer, "optimizer at iteration",i+1,"under area",area_size)
+            print("counter, best_fcn, tr_sum, det_mult, sens_sens_penalty, valid_WSN_penalty, sens_target_penalty, valid_place_penalty, eps_opt_penalty")
             
-            x_out = res.x #save off prev results to start fine-tuning
-            res = optimize.minimize(objective_fcn, x_out, args = sensor_list, method='BFGS', jac='3-point', options={'gtol': 0.01})
-            obj_constraint_SA = -1.0*res.fun
-            print("Complete fine optimizing under", optimizer, "with value and iterations", res.fun, counter)
+            ### OPTIMIZER TYPES
+            if optimizer == 'DIRECT':
+                res = optimize.direct(objective_fcn, bounds=bounds, args = sensor_list, vol_tol=vol_tol, maxfun = maxfun_1, maxiter = max_iters)
+                data_name_list.append("DIRECT Optimizer curve")
+                print("Complete optimizing under", optimizer, "with value and iterations", res.fun, counter)
+                print(res.message)
+                
+                x_out = res.x #save off prev results to start fine-tuning
+                res = optimize.minimize(objective_fcn, x_out, args = sensor_list, method='BFGS', jac='3-point', options={'gtol': 0.01})
+                obj_constraint_DIRECT = -1.0*res.fun
+                print("Complete fine optimizing under", optimizer, "with value and iterations", res.fun, counter)
 
-        # Format the plots
-        ax_opt.plot(fcn_counter, fcn_eval_list, linestyle='None', marker='+', label = optimizer)
+            elif optimizer == 'DE':
+                res = optimize.differential_evolution(objective_fcn, bounds=bounds, args=sensor_list, strategy='best1bin', 
+                                                    popsize=popsize, tol=0.01, mutation=mutation, recombination=recombination, maxiter=(int(max_fun_DE/(2*popsize*num_sensors))-1))
+                data_name_list.append("Diff Ev Optimizer curve")
+                print("Complete optimizing under", optimizer, "with value and iterations", res.fun, counter)
+                print(res.message)
+                
+                x_out = res.x #save off prev results to start fine-tuning
+                res = optimize.minimize(objective_fcn, x_out, args = sensor_list, method='BFGS', jac='3-point', options={'gtol': 0.01})
+                obj_constraint_DE = -1.0*res.fun
+                print("Complete fine optimizing under", optimizer, "with value and iterations", res.fun, counter)
 
-        # Save off optimized vals
-        optimized_vals.append(res.x)
-        x_out = res.x
-        
-        data_save_off.append(fcn_eval_list)
-        data_save_off.append(fcn_counter)
-        data_name_list.append("steps in solve")
-    
-    # End for optimizer ... loop
+            elif optimizer == 'SA':
+                res = optimize.dual_annealing(objective_fcn, bounds=bounds, args=sensor_list, maxfun=maxfun_1, maxiter=max_iter_SA, no_local_search=True, 
+                                            initial_temp=initial_temp, restart_temp_ratio=restart_temp_ratio, visit=visit, accept = -0.01)
+                data_name_list.append("Sim Anneal Optimizer curve")
+                print("Complete optimizing under", optimizer, "with value and iterations", res.fun, counter)
+                print(res.message)
+                
+                x_out = res.x #save off prev results to start fine-tuning
+                res = optimize.minimize(objective_fcn, x_out, args = sensor_list, method='BFGS', jac='3-point', options={'gtol': 0.01})
+                obj_constraint_SA = -1.0*res.fun
+                print("Complete fine optimizing under", optimizer, "with value and iterations", res.fun, counter)
 
-    # Save the number of runs we did for later
-    num_runs = i+1
+            ### RESULTS PER RUN
+            ax_opt.plot(fcn_counter, fcn_eval_list, linestyle='None', marker='+', label = optimizer)
+            x_out = res.x
 
-# modify optimizer list for later printing
-optimizers = optimizers*num_runs
+            # Save off results 
+            sensor_positions_save.append(x_out)
+            sensor_names_save.append("length"+str(area_size))
 
-# Save optimizer plot data
-save_data(data_save_off, data_name_list, "Case1_OptimizerRuns", "Case 1 - optimizer runs")
+            inputs = target_localized_successfully, targets_in, x_out, sensor_rad, meas_type, terrain, 0 #LOS_flag == 1
+            (FIMs_run, det_sum) = build_map_FIMS(inputs)
+            det_mult1, tr_sum1 = return_obj_vals(FIMs_run)
 
-# Plot formatting
-ax_opt.set_ylabel('Objective Function Evaluations'), ax_opt.set_xlabel('Iteration Count')
-#ax_opt.set_ylim([min(fcn_eval_list)*1.25, max(fcn_eval_list)*1.25])
-ax_opt.grid(True, which='minor')  
+            tr_vals.append(tr_sum1)
+            det_vals.append(det_sum)
+            FIM_areas, maj_axis, std_devs = [], [], []
+
+            for q in range(len(targets_in)//2):
+                target_i = [targets_in[0+2*q], targets_in[1+2*q]]
+
+                # Compute the stats
+                Cov_Mat, a, b, sx, sy, area_first = uncertainty_ellipse_stats(FIMs_run[q], target, 2.48, 1)
+                FIM_areas.append(area_first)
+                maj_axis.append(a)
+                std_devs.append(sx**2)
+                std_devs.append(sy**2)
+            
+            print("Mean area, largest axis, iter #:", np.mean(FIM_areas), np.max(maj_axis), i)
+            print("Sensor positions:", x_out)
+
+            if i == 0:
+                tr_area_list.append(np.mean(FIM_areas))
+                tr_largest_axis.append(np.max(maj_axis))
+                tr_mean_var.append(np.mean(std_devs))
+                opt_var.append("Trace")
+
+            if i == 1:
+                det_area_list.append(np.mean(FIM_areas))
+                det_largest_axis.append(np.max(maj_axis))
+                det_mean_var.append(np.mean(std_devs))
+                opt_var.append("Det")
+
+        # End for optimizer ... loop
+
+    print("------------------------") #seperate out different areas
+
+# Print the values and inspect
+print("Trace solutions (first opt), then det solts (second)")
+print(det_area_list, tr_area_list)
+print(det_largest_axis, tr_largest_axis)
+print(det_mean_var, tr_mean_var)
+print(det_vals, tr_vals)
+print(opt_var)
+
+# Save the data off
+area_save_off = [tr_area_list, det_area_list]
+area_save_names = ["Trace optimization mean area","Det optimization mean area"]
+save_data(area_save_off, area_save_names, "Area_vary_optimization_method", "Optimal solutions for a varied area under trace and det - area")
+
+axis_save_off = [tr_largest_axis, det_largest_axis]
+axis_save_names = ["Trace optimization max axis","Det optimization max axis"]
+save_data(axis_save_off, axis_save_names , "axis_vary_optimization_method", "Optimal solutions for a varied area under trace and det - max axis")
+
+var_save_off = [tr_mean_var, det_mean_var]
+var_save_names = ["Trace optimization mean variance","Det optimization mean variance"]
+save_data(var_save_off, var_save_names, "variance_vary_optimization_method", "Optimal solutions for a varied area under trace and det - mean variance")
+
+var_save_off = [tr_vals, det_vals]
+var_save_names = ["Trace vals","Det vals"]
+save_data(var_save_off, var_save_names, "area_variance_tests_obj_vals", "Objective values for trace and det optimization / area test")
+
+save_data([area_list], ["Tested area lengths"], "tested_area_lengths", "tested areas by length of side edge")
+
+save_data(sensor_positions_save, sensor_names_save, "sensor_pos_save", "outputted sensor positions")
+
+
+fig = plt.figure()
+ax_areas = fig.add_subplot()
+ax_areas.plot(area_plot, det_area_list, label='det area list')
+ax_areas.plot(area_plot, tr_area_list, label='tr area list')
 plt.legend()
+
 plt.show()
 
-print('-----------------------------------')
-# ---------FORMAT AND ANALYSIS------------------
-# Finally, make the map for plotting
-# Localize the new map
-target_localized_successfully = [1 for _ in range(len(target_mesh_points ))] #just need a list of 1's 
-targets_in = []
-for target in target_mesh_points:
-    for pt in target:
-        targets_in.append(pt) 
-
-# Analyze results
-FIM_save_list = []
-for i, sensor_list in enumerate(optimized_vals):
-    inputs = target_localized_successfully, targets_in, sensor_list, sensor_rad, meas_type, terrain, 0 #LOS_flag == 1
-    (FIMs_first_run, det_sum) = build_map_FIMS(inputs)
-    det_mult1, tr_sum1 = return_obj_vals(FIMs_first_run)
-    print(optimizers[i], " first run results (trace and det):", tr_sum1, det_sum)
-    print(optimizers[i], " sensor positions:", sensor_list)
-    #if i >= (len(optimized_vals)//2):
-    #    print(optimizers[i], " second run results (trace and det):", tr_sum1, det_sum)
-    #    print(optimized_vals[i])
-
-print('-----------------------------------')
 # ---------PLOTTING AND VISUALIZATION------------------
 # Comment out the random ones if we don't want to visualize them! 
 # It's not always necessary because the ellipses can get unecessarily large
@@ -383,53 +399,5 @@ _map = make_basic_seismic_map(num_sensors, sensor_rad, sensor_type, meas_type, s
 ax = terrain.plot_grid(_map)
 new_map = add_targets(ax, targets_in)
 
-# Set colors for optimizer. Must be the same length as number of optimizers
-colors = ["grey", "blue", "red", "grey", "blue", "red"]
-FIM_data = []
-for j, optimizer in enumerate(optimizers):
-    sensor_list = optimized_vals[j]
-    inputs = target_localized_successfully, targets_in, sensor_list, sensor_rad, meas_type, terrain, 0 #LOS_flag == 1
-    (FIMs_stats, det_sum) = build_map_FIMS(inputs)
-    FIM_areas, maj_axis, std_devs = [], [], []
-    FIM_save_data1, FIM_save_data2, target_save_data = [], [], []
-
-    for i in range(len(targets_in)//2):
-        target_i = [targets_in[0+2*i], targets_in[1+2*i]]
-        new_map = plot_uncertainty_ellipse(new_map, FIMs_stats[i], target_i, 1, 1, colors[j], "analytical")
-        #new_map = plot_uncertainty_ellipse(new_map, FIMs_random[i], target_i, 2.48, 1, "blue", "numerical")
-
-        # Compute the stats
-        Cov_Mat, a, b, sx, sy, area_first = uncertainty_ellipse_stats(FIMs_stats[i], target, 2.48, 1)
-        FIM_areas.append(area_first)
-        maj_axis.append(a)
-        std_devs.append(sx**2)
-        std_devs.append(sy**2)
-
-    FIM_data.append(FIMs_stats)
-
-    print(optimizer, " mean area:", np.mean(FIM_areas))
-    print(optimizer, " largest axis", np.max(maj_axis))
-    print(optimizer, " variances both x, y", np.mean(std_devs))
-
-    # Store data for saving off
-    sensor_save_data.append(sensor_list)
-    sensor_save_names.append(optimizer)
-
-# Save off data
-FIM_data.append(targets_in)
-FIM_save_names = ["First run FIMs", "Second run FIMs", "Associated Targets"]
-save_data(FIM_data, FIM_save_names, "FIM_Save_data", "FIM and each associated target")
-
-# Add to plot
-for j, optimizer in enumerate(optimizers):
-    print(optimizer, optimized_vals[j])
-    for i in range(len(optimized_vals[j])//2):
-            ax.plot(optimized_vals[j][0+2*i], optimized_vals[j][1+2*i], marker='x', color = colors[j])
-            ax.text(optimized_vals[j][0+2*i]+1, optimized_vals[j][1+2*i]+1, optimizer)
-
-# Save off sensor data
-sensor_save_data.append(meas_type)
-sensor_save_names.append("measurement type")
-save_data(sensor_save_data, sensor_save_names, "init_sensor_placements", "Initial sensor placement results for differnet optimizers")
 
 plt.show()

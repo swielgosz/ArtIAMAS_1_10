@@ -33,11 +33,11 @@ terrain.load_from_csv(my_path)
 
 # INITIAL SENSOR LIST
 # Characteristic list
-sensor_rad = [35, 35, 35]
-sensor_type = ["seismic","acoustic","seismic"]
+sensor_rad = [35, 35, 35, 35, 35]
+sensor_type = ["seismic","acoustic","seismic","seismic", "seismic"]
 num_sensors = len(sensor_type)
 sensor_comm_ratio = 0.75 # ratio of sensor communication to sensing radius 
-meas_type = ["radius", "bearing", "radius"]
+meas_type = ["radius", "bearing", "radius", "radius", "radius"]
 LOS_flag = 0 # 1 if want to consider LOS, 0 if don't want to
 
 # OPTIMIZATION PARAMETERS
@@ -46,15 +46,15 @@ d_sens_min = 4 #minimum sensor-sensor distance
 printer_counts = 500 #print the results every ___ fcn calls
 
 # DIRECT Parameters
-vol_tol = 1e-32 # should scale (about) as (1e-4)^(2N) where N is the num of sensors
-max_iters = 5000
-maxfun_1 = 5000
+vol_tol = (1e-5)**(2*5) # should scale (about) as (1e-4)^(2N) where N is the num of sensors
+max_iters = 25000
+maxfun_1 = 25000
 
 # DE Parameters - optimized!
 popsize = 7
 mutation = 0.8
 recombination = 0.8
-max_fun_DE = 12000
+max_fun_DE = 35000
 
 # Sim Annealing Params
 initial_temp = 3000
@@ -104,14 +104,13 @@ def objective_fcn(x, *args):
     # Compute the FIMs
     inputs = target_localized_successfully, targets_in, sensor_positions, sensor_rad, meas_type, terrain, LOS_flag
     (FIMs, det_sum) = build_map_FIMS(inputs)
-    det_mult = 1.
+    det_mult = 0.
     tr_sum = 0.
     eig_abs_sum = 0.
 
     # Set optimizer_var to whatever you want (trace, det, eigenvalue)
     # NOTE: penalties are applied to individual FIMS - see the build_map_FIMS for details!!!!!
     for kk in range(len(FIMs)):
-        # FIM correspond to target list one-to-one
         det_mult = det_mult + np.linalg.det(FIMs[kk])
         tr_sum += np.trace(FIMs[kk])
         #eig_abs_sum += np.max(np.linalg.eigvals(FIMs[kk]))
@@ -161,7 +160,7 @@ def objective_fcn(x, *args):
     
     # PICK OPTIMIZATION ORDER HERE!
     if step_num == 1:
-        optimizer_var = tr_sum #CHANGE THIS 
+        optimizer_var = det_mult #CHANGE THIS 
         eps_opt_penalty = 1
         prev_opt = 1
     elif step_num == 2:
@@ -173,8 +172,8 @@ def objective_fcn(x, *args):
     optimizer_var = optimizer_var*eps_opt_penalty
     
     #optimizer_var = optimizer_var * eps_opt_penalty
-    if optimizer_var > best_fcn:
-        best_fcn = optimizer_var.copy()
+    #if optimizer_var > best_fcn:
+    #    best_fcn = optimizer_var.copy()
 
     # If a valid config, return (-1)det(FIMs)
     if valid_placement_check:# and valid_WSN:
@@ -219,14 +218,18 @@ target_mesh_points = []
 #area_origin =  [[39, 39], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
 #area_dim = [[14, 6], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
 
-#area_origin =  [[39, 41], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
-#area_dim = [[14, 4], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
+area_origin =  [[39, 41], [41, 45],[43, 49],[49, 51],[53, 53], [57, 57]] # can add additional origins if using multiple rectangles
+area_dim = [[14, 4], [12, 4], [14, 2], [8,2], [6, 4], [6, 4]] # [width, height]
 
 #area_origin = [[60, 25]]
 #area_dim = [[8, 12]]
-area_origin =  [[55, 35], [57, 33], [61, 33], [63, 33], [34, 28], [36, 32], [40, 34]] # can add additional origins if using multiple rectangles
-area_dim = [[2, 8], [4, 10], [2, 6], [2, 4], [8, 4], [8, 2], [4, 2]] # [width, height]
+#area_origin =  [[55, 35], [57, 33], [61, 33], [63, 33], [34, 28], [36, 32], [40, 34]] # can add additional origins if using multiple rectangles
+#area_dim = [[2, 8], [4, 10], [2, 6], [2, 4], [8, 4], [8, 2], [4, 2]] # [width, height]
 step = 2
+
+#area_origin = [[39, 32], [55, 40], [58, 39], [64, 33], [41, 30]]
+#area_dim = [[1,1],[1,1],[1,1],[1,1],[1,1]]
+#step = 1
 
 # Place targets
 for i in range(len(area_origin)):
@@ -247,7 +250,7 @@ optimized_vals = []
 
 # Run the multi-objective placements!
 # To pick what's being optimized first, change it around in the objective fcn
-for i in range(2): # set to one if doing single-step. Two otherwise
+for i in range(1): # set to one if doing single-step. Two otherwise
     # Generate figs and plots
     fig = plt.figure()
     ax_opt = fig.add_subplot()
@@ -296,7 +299,7 @@ for i in range(2): # set to one if doing single-step. Two otherwise
 
         elif optimizer == 'DE':
             res = optimize.differential_evolution(objective_fcn, bounds=bounds, args=sensor_list, strategy='best1bin', 
-                                                  popsize=popsize, tol=0.01, mutation=mutation, recombination=recombination, maxiter=(int(max_fun_DE/(2*popsize*num_sensors))-1))
+                                                  popsize=popsize, tol=0.0025, mutation=mutation, recombination=recombination, maxiter=(int(max_fun_DE/(2*popsize*num_sensors))-1))
             data_name_list.append("Diff Ev Optimizer curve")
             print("Complete optimizing under", optimizer, "with value and iterations", res.fun, counter)
             print(res.message)

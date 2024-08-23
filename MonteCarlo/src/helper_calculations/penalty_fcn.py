@@ -70,6 +70,7 @@ def valid_sensor_penalty(sensors, terrain):
     penalty_mult = 0.
     for i in range(len(sensors)//2): 
         sx, sy = round(sensors[0+2*i]), round(sensors[1+2*i])
+        
         # Check main square
         if terrain.is_valid_sensor_location(sy, sx):
             penalty_mult += 2

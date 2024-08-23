@@ -13,7 +13,7 @@ def make_target_mesh(target_list, terrain, area_origin, area_dim, step):
               num_targets = terrain.get_target_density(j,i)
               terrain.grid[i][j].has_target = True
               terrain.grid[i][j].num_targets = num_targets # define the number of targets at each gridpoint
-              print(f"Number of targets at ({i}, {j}): {terrain.grid[i][j].num_targets}")
+              #print(f"Number of targets at ({i}, {j}): {terrain.grid[i][j].num_targets}")
               for k in range(num_targets):
                    target_list.append([i,j]) # update list of targets
 

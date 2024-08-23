@@ -135,6 +135,9 @@ class Configuration:
     # Check if a sensor can be placed at a specific grid point
     def is_valid_sensor_location(self, i, j):
 
+        if (i < 1 or j < 1 or i > self.width-1 or j>self.height-1):
+            return False
+
         if self.grid[i][j].land_type.is_sensor_valid:
             return True
         

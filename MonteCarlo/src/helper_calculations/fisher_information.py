@@ -46,7 +46,7 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
         penalty = 1 # NOTE: CHANGED TO GLOBALLY SATISFY CONSTRAINT
 
         # Distance-based noise scaling
-        eta = 0.00
+        eta = 0.02
         dist_noise_scaling = (1+eta*r[i])
 
         if sensor_types[i] == "bearing":
@@ -168,7 +168,7 @@ def plot_uncertainty_ellipse(_map, FIM, target, confidence, plot_scale, color, s
     v=target[1]     #y-position of the center
     
     # Uncomment to print stats as necessary
-    # print("ellipse area:", np.pi*a*b,"for target:", target)
+    print("ellipse area:", np.pi*a*b, "major axis:", a, "for target:", target)
     # print("Confid*sx, sy:", sx*plot_scale, sy*plot_scale, "major, minor axes", a, b, "for target:", target )
 
     # Plot!

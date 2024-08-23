@@ -1,12 +1,12 @@
 %% INTRODUCTION
 % TITLE: Map and sensor plotting script
 % PROJECT: Optimal heterogeneous WSN placements
-% DATE: Aug 24, 2024
+% DATE: 6 AUG 24
 % AUTHORS: J. Mockler
 % DESC: This script creates "explore" placement figures for the associated
 % sensor placement paper. 
 
-close all
+close all; clear all
 
 %% READ IN DATA AND PLOT MAP
 % Import the map 
@@ -35,6 +35,7 @@ colormap(colorMap)
 % Import the target mesh
 % TBH, I can't seem to find a convienent way to import and partition this
 % data, so I just copied and pasted it in. 
+% CASE 1
 target_mesh = [39, 41; 39, 41; 39, 41; 39, 41; 39, 41; 39, 43; 41, 41; 
     41, 43; 41, 43; 41, 43; 41, 43; 41, 43; 43, 41; 43, 41; 43, 41; 
     43, 41; 43, 41; 43, 43; 43, 43; 43, 43; 43, 43; 43, 43; 45, 41; 
@@ -48,19 +49,39 @@ target_mesh = [39, 41; 39, 41; 39, 41; 39, 41; 39, 41; 39, 43; 41, 41;
     53, 53; 53, 55; 55, 53; 55, 53; 55, 55; 57, 53; 57, 55; 57, 55; 
     57, 57; 57, 59; 59, 57; 59, 57; 59, 59; 61, 57; 61, 57; 61, 59];
 
+% CASE 2
+% target_mesh = [55, 35; 55, 37; 55, 39; 55, 41; 57, 33; 57, 33; 57, 35; 
+%     57, 35; 57, 37; 57, 37; 57, 39; 57, 39; 57, 41; 57, 41; 59, 33; 
+%     59, 35; 59, 37; 59, 39; 59, 39; 59, 41; 61, 33; 61, 35; 61, 35; 
+%     61, 37; 61, 37; 63, 33; 63, 33; 63, 33; 63, 33; 63, 33; 63, 35; 
+%     63, 35; 63, 35; 63, 35; 63, 35; 34, 28; 34, 30; 34, 30; 34, 30; 
+%     34, 30; 34, 30; 36, 28; 36, 30; 36, 30; 38, 28; 38, 30; 38, 30; 
+%     40, 28; 40, 28; 40, 30; 36, 32; 38, 32; 38, 32; 38, 32; 38, 32; 
+%     38, 32; 40, 32; 42, 32; 40, 34; 40, 34; 40, 34; 40, 34; 40, 34; 
+%     42, 34];
+
 % Get the density
 [target_locs_list, density] = mesh_density(target_mesh);
 
 % Import the sensors
 % Also can't read this in nicely. I just copied and pasted it in again
 % cause it's not much data and can be cleaned easily.
+% CASE 1
 placement_step_1 = [63.623233555875956 49.52390133125314; 58.174591890070516 42.52344479752157; 42.594991096125604 56.18002788916856; 47.2927943511221 59.420228621893415]; 
 placement_step_2 = [63.21988299009363 50.301701179412916; 41.62841105952802 55.718909428926395; 57.80425238524424 42.869635611693795; 46.9996883909076 58.33687905728023];
 
+% CASE 2
+%placement_step_1 = [54.85023263748876 46.29158784605503; 41.45345887247751 39.23412294537438; 47.45079211895719 33.7285994705387];
+%placement_step_2 = [54.50633807634167 46.32458926798649; 40.44200985002967 39.33369424156855; 47.27705969369603 30.663117256901057];
+
 % Import sensor characteristics
 % From excel sheet
+% CASE 1
 sensor_type = ["radii" "radii" "radii" "bearing"];
+% CASE 2
+% sensor_type = ["radii" "bearing" "radii"];
 
+% CASE 1
 % First FIM data
 FIMs_raw = [0.56888668 0.24034018;
  0.24034018 0.20229072; 0.56888668 0.24034018;
@@ -257,6 +278,141 @@ FIMs_raw_2nd=[0.52232031 0.24098335;
  -0.02848979  0.74043233; 0.28350154 0.0682498 ;
  0.0682498  0.72883872];
 
+% CASE 2
+% First FIM data
+% FIMs_raw = [0.24785498 -0.00909876;
+%  -0.00909876  1.14985192; 0.32984836 0.1933254 ;
+%  0.1933254  1.06537069; 0.444815   0.32336843;
+%  0.32336843 0.92324917; 0.5513809  0.39003708;
+%  0.39003708 0.77135622;  0.19448714 -0.21206199;
+%  -0.21206199  1.04672445;  0.19448714 -0.21206199;
+%  -0.21206199  1.04672445;  0.18838977 -0.0380492 ;
+%  -0.0380492   1.07297318;  0.18838977 -0.0380492 ;
+%  -0.0380492   1.07297318; 0.23804233 0.11994748;
+%  0.11994748 1.02312909; 0.23804233 0.11994748;
+%  0.11994748 1.02312909; 0.31760533 0.23281545;
+%  0.23281545 0.92461436; 0.31760533 0.23281545;
+%  0.23281545 0.92461436; 0.39680312 0.29454101;
+%  0.29454101 0.81121571; 0.39680312 0.29454101;
+%  0.29454101 0.81121571;  0.14659475 -0.1846866 ;
+%  -0.1846866   0.98007066;  0.13846137 -0.0500496 ;
+%  -0.0500496   1.00365352; 0.16664507 0.07623856;
+%  0.07623856 0.97573796; 0.2167816  0.17549637;
+%  0.17549637 0.91131521; 0.2167816  0.17549637;
+%  0.17549637 0.91131521; 0.26854734 0.24248543;
+%  0.24248543 0.83255118;  0.10836927 -0.15930592;
+%  -0.15930592  0.9178083 ;  0.09883362 -0.05076728;
+%  -0.05076728  0.93908889;  0.09883362 -0.05076728;
+%  -0.05076728  0.93908889; 0.11401444 0.0539689 ;
+%  0.0539689  0.9239624 ; 0.11401444 0.0539689 ;
+%  0.0539689  0.9239624 ;  0.07904415 -0.13577828;
+%  -0.13577828  0.85892014;  0.07904415 -0.13577828;
+%  -0.13577828  0.85892014;  0.07904415 -0.13577828;
+%  -0.13577828  0.85892014;  0.07904415 -0.13577828;
+%  -0.13577828  0.85892014;  0.07904415 -0.13577828;
+%  -0.13577828  0.85892014;  0.06933208 -0.04544653;
+%  -0.04544653  0.8775243 ;  0.06933208 -0.04544653;
+%  -0.04544653  0.8775243 ;  0.06933208 -0.04544653;
+%  -0.04544653  0.8775243 ;  0.06933208 -0.04544653;
+%  -0.04544653  0.8775243 ;  0.06933208 -0.04544653;
+%  -0.04544653  0.8775243 ; 0.39295403 0.43480636;
+%  0.43480636 0.67653252; 0.32949271 0.4068481 ;
+%  0.4068481  0.7972022 ; 0.32949271 0.4068481 ;
+%  0.4068481  0.7972022 ; 0.32949271 0.4068481 ;
+%  0.4068481  0.7972022 ; 0.32949271 0.4068481 ;
+%  0.4068481  0.7972022 ; 0.32949271 0.4068481 ;
+%  0.4068481  0.7972022 ; 0.51145219 0.4694597 ;
+%  0.4694597  0.64457894; 0.44785514 0.45000474;
+%  0.45000474 0.7808624 ; 0.44785514 0.45000474;
+%  0.45000474 0.7808624 ; 0.65382197 0.4855468 ;
+%  0.4855468  0.59061585; 0.59370216 0.47205483;
+%  0.47205483 0.74204327; 0.59370216 0.47205483;
+%  0.47205483 0.74204327; 0.81628347 0.47390589;
+%  0.47390589 0.51396933; 0.81628347 0.47390589;
+%  0.47390589 0.51396933; 0.75615822 0.46345985;
+%  0.46345985 0.68663085; 0.37588175 0.39895318;
+%  0.39895318 0.91968404; 0.52966179 0.41887006;
+%  0.41887006 0.89334202; 0.52966179 0.41887006;
+%  0.41887006 0.89334202; 0.52966179 0.41887006;
+%  0.41887006 0.89334202; 0.52966179 0.41887006;
+%  0.41887006 0.89334202; 0.52966179 0.41887006;
+%  0.41887006 0.89334202; 0.69501998 0.38425436;
+%  0.38425436 0.85835687; 0.82251125 0.3088574 ;
+%  0.3088574  0.85500919; 0.6831523 0.2563598;
+%  0.2563598 0.973333 ; 0.6831523 0.2563598;
+%  0.2563598 0.973333 ; 0.6831523 0.2563598;
+%  0.2563598 0.973333 ; 0.6831523 0.2563598;
+%  0.2563598 0.973333 ; 0.6831523 0.2563598;
+%  0.2563598 0.973333 ; 0.80531085 0.04136855;
+%  0.04136855 0.99440505];
+% 
+% % Second FIMs data
+% FIMs_raw_2nd=[0.37543008 0.18511498;
+%  0.18511498 0.9413577 ; 0.46729013 0.2670784 ;
+%  0.2670784  0.82176553; 0.54084689 0.310143  ;
+%  0.310143   0.70738123; 0.59582855 0.32912506;
+%  0.32912506 0.60266213; 0.21098518 0.00831578;
+%  0.00831578 0.99337137; 0.21098518 0.00831578;
+%  0.00831578 0.99337137; 0.27013142 0.13160057;
+%  0.13160057 0.9286388 ; 0.27013142 0.13160057;
+%  0.13160057 0.9286388 ; 0.3415237  0.21399901;
+%  0.21399901 0.83691208; 0.3415237  0.21399901;
+%  0.21399901 0.83691208; 0.40609637 0.26005456;
+%  0.26005456 0.74037554; 0.40609637 0.26005456;
+%  0.26005456 0.74037554; 0.45340281 0.27795284;
+%  0.27795284 0.65244488; 0.45340281 0.27795284;
+%  0.27795284 0.65244488;  0.15581986 -0.01002217;
+%  -0.01002217  0.9404214 ; 0.19376376 0.09496912;
+%  0.09496912 0.89874899; 0.24472484 0.17307481;
+%  0.17307481 0.83217291; 0.29416766 0.2238725 ;
+%  0.2238725  0.7570888 ; 0.29416766 0.2238725 ;
+%  0.2238725  0.7570888 ; 0.33114306 0.25350838;
+%  0.25350838 0.68640033;  0.11422598 -0.01738574;
+%  -0.01738574  0.88655715; 0.13839855 0.07262871;
+%  0.07262871 0.85950559; 0.13839855 0.07262871;
+%  0.07262871 0.85950559; 0.17420348 0.14546508;
+%  0.14546508 0.81120658; 0.17420348 0.14546508;
+%  0.14546508 0.81120658;  0.08330781 -0.01835373;
+%  -0.01835373  0.83328145;  0.08330781 -0.01835373;
+%  -0.01835373  0.83328145;  0.08330781 -0.01835373;
+%  -0.01835373  0.83328145;  0.08330781 -0.01835373;
+%  -0.01835373  0.83328145;  0.08330781 -0.01835373;
+%  -0.01835373  0.83328145; 0.09898426 0.05966454;
+%  0.05966454 0.81512632; 0.09898426 0.05966454;
+%  0.05966454 0.81512632; 0.09898426 0.05966454;
+%  0.05966454 0.81512632; 0.09898426 0.05966454;
+%  0.05966454 0.81512632; 0.09898426 0.05966454;
+%  0.05966454 0.81512632; 0.36538261 0.33787214;
+%  0.33787214 0.74976135; 0.33036174 0.28275411;
+%  0.28275411 0.83216403; 0.33036174 0.28275411;
+%  0.28275411 0.83216403; 0.33036174 0.28275411;
+%  0.28275411 0.83216403; 0.33036174 0.28275411;
+%  0.28275411 0.83216403; 0.33036174 0.28275411;
+%  0.28275411 0.83216403; 0.46530436 0.35227431;
+%  0.35227431 0.74435741; 0.43863583 0.28599188;
+%  0.28599188 0.83073175; 0.43863583 0.28599188;
+%  0.28599188 0.83073175; 0.57366211 0.35021193;
+%  0.35021193 0.73450284; 0.5544941  0.25473637;
+%  0.25473637 0.82725793; 0.5544941  0.25473637;
+%  0.25473637 0.82725793; 0.68275302 0.33683042;
+%  0.33683042 0.72497524; 0.68275302 0.33683042;
+%  0.33683042 0.72497524; 0.65183741 0.18704218;
+%  0.18704218 0.84417825; 0.42746279 0.21492191;
+%  0.21492191 0.8926263 ; 0.57924518 0.15389478;
+%  0.15389478 0.86595963; 0.57924518 0.15389478;
+%  0.15389478 0.86595963; 0.57924518 0.15389478;
+%  0.15389478 0.86595963; 0.57924518 0.15389478;
+%  0.15389478 0.86595963; 0.57924518 0.15389478;
+%  0.15389478 0.86595963; 0.71154976 0.01037544;
+%  0.01037544 0.85799801;  0.77935652 -0.19620215;
+%  -0.19620215  0.90613653;  0.84319524 -0.1046352 ;
+%  -0.1046352   0.78771301;  0.84319524 -0.1046352 ;
+%  -0.1046352   0.78771301;  0.84319524 -0.1046352 ;
+%  -0.1046352   0.78771301;  0.84319524 -0.1046352 ;
+%  -0.1046352   0.78771301;  0.84319524 -0.1046352 ;
+%  -0.1046352   0.78771301;  0.96009022 -0.38331269;
+%  -0.38331269  0.77627606];
+
 % Parse out data - needs odd formatting appropriately save data
 for i = 0:length(FIMs_raw(:,1))/2 - 1
     FIMs(1,:,i+1) = FIMs_raw(1+2*i,:);
@@ -271,6 +427,30 @@ end
 
 %% PLOTTING
 
+% Plot the first placement
+% for i = 1:length(placement_step_1(:,1))
+%     if strcmp(sensor_type(i),'radii')
+%         plot(placement_step_1(i, 1)+1, placement_step_1(i,2)+1, ...
+%             'o', 'color', "#0072BD", 'MarkerSize', 9, "LineWidth", 1.5)
+% 
+%     elseif strcmp(sensor_type(i),'bearing')
+%         plot(placement_step_1(i, 1)+1, placement_step_1(i,2)+1, ...
+%             'o', 'color', "#EDB120",'MarkerSize', 9, "LineWidth", 1.5)
+%     end
+% end
+
+% Plot the second placement
+for i = 1:length(placement_step_2(:,1))
+    if strcmp(sensor_type(i),'radii')
+        plot(placement_step_2(i, 1)+1, placement_step_2(i,2)+1, ...
+            'x', 'color', "#0072BD", 'MarkerSize', 9, "LineWidth", 1.5)
+    
+    elseif strcmp(sensor_type(i),'bearing')
+        plot(placement_step_2(i, 1)+1, placement_step_2(i,2)+1, ...
+            'x', 'color', "#EDB120", 'MarkerSize', 9, "LineWidth", 1.5)
+    end
+end
+
 % Plot the target mesh points
 for i = 1:length(target_locs_list(:,1))
     if density(i) == 1
@@ -282,68 +462,121 @@ for i = 1:length(target_locs_list(:,1))
     end
     % offset plot by 0.5 to center it on the square!
     % Add one to compensate for python / matlab indexing diffs
-    plot(target_locs_list(i, 1)+1.5, target_locs_list(i,2)+1.5, target_plot_style)
+    % Turn off legend entry
+    plot(target_locs_list(i, 1)+1.5, target_locs_list(i,2)+1.5, ...
+        target_plot_style,'HandleVisibility','off')
 end
+
+% Uncomment below for uncert ellipse plots
 
 % Plot the uncertainty ellipses!
 
 % Define some list of targets you want to plot for
+% CASE 1
 target_plot_list = [39 41; 41 45; 43 49; 47 49; 49 51; 53 53; 59 59; 57 57; 61 59; 61 57; 57 53; 55 49; 51 47; 51 43; 51 41; 47 41; 43 41; 45 45; 47 47];
+% CASE 2
+% target_plot_list = [34, 28; 38, 28; 34, 30; 36, 30; 40, 30; 36, 32; 42, 32; 42, 34; 40, 34; 55, 41; 59, 41; 55, 37; 61, 37; 55, 35; 59, 35; 63, 35; 57, 33; 61, 33; 64, 33];
+
 % For ALL of them, just define the target plot list as
-%target_plot_list = target_locs_list;
+% target_plot_list = target_locs_list;
 
-for i = 1:length(FIMs(1,1,:))
-    % Check if target is in plot list
-    target = target_mesh(i,:);
-    if ismember(target, target_plot_list, 'rows')
-        % Plot the FIRST FIM
-        FIM = FIMs(:,:,i);
-        % compensate for indexing and formatting
-        target(1) = target(1) + 1.5; target(2) = target(2) + 1.5;
-        plot_vecs = plot_uncertainty_ellipse_vector(FIM, target);
-        plot(plot_vecs(1,:), plot_vecs(2, :), '--k')
-        
-        % Then the second FIM
-        FIM2 = FIMs2(:,:,i);
-        plot_vecs = plot_uncertainty_ellipse_vector(FIM2, target);
-        plot(plot_vecs(1,:), plot_vecs(2, :), '-b', 'LineWidth', 1.25)
-    end
-end
+% for i = 1:length(FIMs(1,1,:))
+%     % Check if target is in plot list
+%     target = target_mesh(i,:);
+%     if ismember(target, target_plot_list, 'rows')
+%         % Plot the FIRST FIM
+%         FIM = FIMs(:,:,i);
+%         % compensate for indexing and formatting
+%         target(1) = target(1) + 1.5; target(2) = target(2) + 1.5;
+%         plot_vecs = plot_uncertainty_ellipse_vector(FIM, target);
+%         if i == 1
+%             plot(plot_vecs(1,:), plot_vecs(2, :), '--', 'color', [0.25 0.25 0.25])
+%         end
+%         plot(plot_vecs(1,:), plot_vecs(2, :), '--', 'color', [0.25 0.25 0.25], 'HandleVisibility','off')
+% 
+%         % Then the second FIM
+%         FIM2 = FIMs2(:,:,i);
+%         plot_vecs = plot_uncertainty_ellipse_vector(FIM2, target);
+%         if i == 1
+%             plot(plot_vecs(1,:), plot_vecs(2, :), '-k', 'LineWidth', 0.75)
+%         end
+%         plot(plot_vecs(1,:), plot_vecs(2, :), '-k', 'LineWidth', 0.75,'HandleVisibility','off')
+%     end
+% end
 
-% Plot the first placement
-for i = 1:length(placement_step_1(:,1))
-    if strcmp(sensor_type(i),'radii')
-        plot(placement_step_1(i, 1)+1, placement_step_1(i,2)+1, ...
-            'mx', 'MarkerSize', 10)
-    
-    elseif strcmp(sensor_type(i),'bearing')
-        plot(placement_step_1(i, 1)+1, placement_step_1(i,2)+1, ...
-            'bx', 'MarkerSize', 10)
-    end
-end
+% Make this match with the plot!
 
-% Plot the second placement
+% CASE 1
+% legend("", "Trace Obj. - Dist.", "", "", "Trace Obj. - AoA.", "MOO - Dist.", "", "", ...
+%     "MOO - AoA", "Tr. - 95\% Confid", "MOO - 95\% Confid", 'Interpreter', 'latex')
+
+% CASE 2
+%legend("", "Trace Obj. Dist.", "Trace Obj. AoA", "", "Tr+Det - Dist.", ...
+%   "Tr + Det AoA", "", "Tr Uncertainty", "Tr+Det Uncertainty", ...
+%   'Interpreter', 'latex')
+
+%% ADD CONSTRAINTS!
+
 for i = 1:length(placement_step_2(:,1))
+    %Add WSN radii
+    sensor = [placement_step_2(i, 1)+1, placement_step_2(i,2)+1];
+    plot_vecs = plot_wsn_radii(sensor, 0.4*50);
     if strcmp(sensor_type(i),'radii')
-        plot(placement_step_2(i, 1)+1, placement_step_2(i,2)+1, ...
-            'm diamond', 'MarkerSize', 10)
-    
+        plot(plot_vecs(1,:), plot_vecs(2, :), '--','color', "#0072BD",'HandleVisibility','off')
     elseif strcmp(sensor_type(i),'bearing')
-        plot(placement_step_2(i, 1)+1, placement_step_2(i,2)+1, ...
-            'b diamond', 'MarkerSize', 10)
+        plot(plot_vecs(1,:), plot_vecs(2, :), '--','color', "#EDB120",'HandleVisibility','off')
+    end
+
+    % Add min distance line
+    sensor = [placement_step_2(i, 1), placement_step_2(i,2)];
+    [min_dist, min_target] = min_dist_calcs(sensor, target_locs_list);
+    xcplt = [sensor(1)+1, min_target(1)+1.5]; 
+    ycplt = [sensor(2)+1, min_target(2)+1.5];
+    plot(xcplt, ycplt, '-k')
+    % Uncomment to add text, although I think we should do this in
+    % post-processing rather than on here...
+    %plt_text = ["Min Target Dist", string(min_dist)];
+    %text(mean(xcplt), mean(ycplt),plt_text)
+end
+
+% Add min sensor-sensor line
+min_s_dist = 100;
+sens1 = [1,1]; sens2 = [1,1];
+for i = 1:length(placement_step_2(:,1))
+    sens_i = [placement_step_2(i, 1), placement_step_2(i,2)];
+    for j = 1:length(placement_step_2(:,1))
+        if i == j
+            continue;
+        else
+            sens_j = [placement_step_2(j, 1), placement_step_2(j,2)];
+            dist = norm(sens_i - sens_j, 2);
+            if dist < min_s_dist
+                min_s_dist = dist;
+                sens1 = sens_i;
+                sens2 = sens_j;
+            end
+        end
     end
 end
 
-% Add WSN radii
-sensor = [63.623233555875956 49.52390133125314];
-plot_vecs = plot_wsn_radii(sensor, 0.4*50);
-plot(plot_vecs(1,:), plot_vecs(2, :), '--k')
+xcplt = [sens1(1)+1, sens2(1)+1]; 
+ycplt = [sens1(2)+1, sens2(2)+1];
+plot(xcplt, ycplt, '-k')
+% Uncomment to add text, although I think we should do this in
+% post-processing rather than on here...
+%plt_text = ["Min Sens-Sens Dist", string(min_s_dist)];
+%text(mean(xcplt), mean(ycplt), plt_text)
 
 
 %% PLOT FORMATTING
 xlabel('Longitude','Interpreter', 'latex') 
 ylabel('Latitude','Interpreter', 'latex')
-title('Optimal Exploration Placements','Interpreter', 'latex')
 set(gca,'TickLabelInterpreter','latex')
-xlim([35, 70]); ylim([35, 70])
+% CASE 1
+title('Optimal Exploration Placements - Case I','Interpreter', 'latex', 'Fontsize', 13)
+xlim([35, 70]); ylim([35, 65])
+% CASE 2
+%title('Optimal Exploration Placements - Case II','Interpreter', 'latex', 'Fontsize', 13)
+%xlim([30, 70]); ylim([25, 50])
+
 
