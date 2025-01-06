@@ -46,33 +46,33 @@ def build_FIM(sensors, target, sensor_types, sigma_e):
         penalty = 1 # NOTE: CHANGED TO GLOBALLY SATISFY CONSTRAINT
 
         # Distance-based noise scaling
-        eta = 0.02
+        eta = 0.04
         dist_noise_scaling = (1+eta*r[i])
 
         if sensor_types[i] == "bearing":
             # If the sensor is placed on the target, avoid div by 0 error
             if np.isclose(r[i], 0, rtol=1e-06) == True:
                 FIM += penalty*(1/(1)**2)*np.array(([(np.cos(phi[i]))**2,-0.5*np.sin(2*phi[i])],
-                                [-0.5*np.sin(2*phi[i]),(np.sin(phi[i]))**2]))
+                                [-0.5*np.sin(2*phi[i]),(np.sin(phi[i]))**2]))*(1/dist_noise_scaling)**2
             
             else: #note: should be 1/r^2, but I'm testing stuff - JM
                 FIM += penalty*(1/(r[i])**2)*np.array(([(np.cos(phi[i]))**2,-0.5*np.sin(2*phi[i])],
-                                [-0.5*np.sin(2*phi[i]),(np.sin(phi[i]))**2]))
+                                [-0.5*np.sin(2*phi[i]),(np.sin(phi[i]))**2]))*(1/dist_noise_scaling)**2
             
             # Add in contributions from dist-dep noise
             FIM += 2*eta**2*penalty*np.array(([(np.sin(phi[i]))**2,0.5*np.sin(2*phi[i])],
-                            [0.5*np.sin(2*phi[i]),(np.cos(phi[i]))**2]))
+                            [0.5*np.sin(2*phi[i]),(np.cos(phi[i]))**2]))*(1/dist_noise_scaling)**2
 
             # Add in the dist-noise scaling
-            FIM = FIM*(1/dist_noise_scaling)**2
+            FIM = FIM
 
         if sensor_types[i] == "radial" or "radius":
             FIM += penalty*np.array(([(np.sin(phi[i]))**2,0.5*np.sin(2*phi[i])],
-                            [0.5*np.sin(2*phi[i]),(np.cos(phi[i]))**2]))
+                            [0.5*np.sin(2*phi[i]),(np.cos(phi[i]))**2]))*((1+2*eta**2)/dist_noise_scaling)**2
         
             # Add in the dist-noise scaling
             # Add in contributions from dist-dep noise
-            FIM = FIM*((1+2*eta**2)/dist_noise_scaling)**2
+            FIM = FIM
            
         FIM = FIM*(1/sigma_e[i])**2
         #print((1/sigma_e[i])**2, sigma_e[i])
@@ -131,7 +131,7 @@ def build_map_FIMS(inputs):
             FIMs.append(build_FIM(sub_sensor_FIM, [xt, yt], sub_sensor_type, sub_sensor_sigma))
             det_sum += np.linalg.det(FIMs[i])
             trace_sum += np.trace(FIMs[i])
-
+            
     # 2nd term is what we're returning to the objective!
     return FIMs, det_sum
 
@@ -168,7 +168,7 @@ def plot_uncertainty_ellipse(_map, FIM, target, confidence, plot_scale, color, s
     v=target[1]     #y-position of the center
     
     # Uncomment to print stats as necessary
-    print("ellipse area:", np.pi*a*b, "major axis:", a, "for target:", target)
+    # print("ellipse area:", np.pi*a*b, "major axis:", a, "for target:", target)
     # print("Confid*sx, sy:", sx*plot_scale, sy*plot_scale, "major, minor axes", a, b, "for target:", target )
 
     # Plot!
